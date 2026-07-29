@@ -56,7 +56,7 @@ BMP280 bmp;
 GPS gps(Pins::GPS_TX);
 
 // Communication
-LoRa lora(Pins::LORA_CS, Pins::LORA_DIO0, Pins::LORA_RESET, systemConfig.lora);
+RF96W lora(Pins::LORA_CS, Pins::LORA_DIO0, Pins::LORA_RESET, systemConfig.lora);
 WifiAP wifi;
 
 // Storage
@@ -215,7 +215,6 @@ void taskControl(void *pv){
 
     static AttitudeData attitudeData;
     static NavigationData nav; 
-    static ServoPositions angle;
     static ImuOffsets localOffsets; 
   //===================TO  ATTITUDE==============
     if(systemConfig.flightMode == FlightMode::CONFIG && newOffsetsAvailable){
@@ -251,13 +250,13 @@ void taskControl(void *pv){
     imu.update();
 
     if(systemConfig.flightMode == FlightMode::FLIGHT){
-      pid.setAngles(angle, attitudeData, nav, useNewValues);
+      pid.setAngles(attitudeData, nav, useNewValues);
     }
 
 
-    elevator.write(angle.elevator);
-    leftAlieron.write(angle.leftAileron);
-    rightAlieron.write(angle.rightAileron);
+    elevator.write(pid.elevator.setAngle);
+    leftAlieron.write(pid.leftAileron.setAngle);
+    rightAlieron.write(pid.rightAileron.setAngle);
 
   //===================TO  ATTITUDE==============
   //=====================FOR SEND================
@@ -268,9 +267,9 @@ void taskControl(void *pv){
     // Mesmo valor que acabou de ir pro elevator.write()/leftAlieron.write()/
     // rightAlieron.write() acima -- registrado aqui, e nao lido de volta do
     // servo, porque servo (PWM) nao tem telemetria de posicao real.
-    attitudeData.servoElevator = angle.elevator;
-    attitudeData.servoLeftAileron = angle.leftAileron;
-    attitudeData.servoRightAileron = angle.rightAileron;
+    attitudeData.servoElevator = pid.elevator.setAngle;
+    attitudeData.servoLeftAileron = pid.leftAileron.setAngle;
+    attitudeData.servoRightAileron = pid.rightAileron.setAngle;
 
     attitudeData.accX = imu.getAccX();
     attitudeData.accY = imu.getAccY();

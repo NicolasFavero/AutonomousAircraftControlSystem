@@ -16,7 +16,6 @@ class IMU{
         bool update();
         bool isHealthy() const;
         void print();
-        const char* packet();
 
         float getPitch() const;
         float getRoll() const;
@@ -61,8 +60,6 @@ class IMU{
         float magX = 0.0f;
         float magY = 0.0f;
         float magZ = 0.0f;
-        
-        char packetBuffer[32];
 
         // Timestamp (micros) da ultima leitura de quaternion valida do
         // DMP. So marca sensorOk=false quando passar STALE_TIMEOUT_US
@@ -79,8 +76,3 @@ class IMU{
         static constexpr uint8_t ADDRESS = 0; //it corresponds with the 0x68
 
 };
-
-
-//só pra lembrar enquanto to programando
- // Wire.begin(SDA_PIN, SCL_PIN);
- // Wire.setClock(400000); 

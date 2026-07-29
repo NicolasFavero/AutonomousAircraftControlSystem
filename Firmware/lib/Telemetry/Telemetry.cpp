@@ -97,6 +97,39 @@ const char* Telemetry::buildCsv(){
 
     return csv;
 }
+const char* Telemetry::getCsvHeader() const{
+
+    return
+        "millis,"
+        "state,"
+        "gpsValid,"
+        "imuValid,"
+        "sats,"
+        "date,"
+        "time,"
+        "pitch,"
+        "roll,"
+        "yaw,"
+        "servoElevator,"
+        "servoLeftAileron,"
+        "servoRightAileron,"
+        "accX,"
+        "accY,"
+        "accZ,"
+        "gyroX,"
+        "gyroY,"
+        "gyroZ,"
+        "magX,"
+        "magY,"
+        "magZ,"
+        "baroAlt,"
+        "gpsAlt,"
+        "temp,"
+        "lat,"
+        "lon,"
+        "course,"
+        "battery";
+}
 const char* Telemetry::buildLoraPacket(bool reduced){
 
     if(reduced)
@@ -184,39 +217,6 @@ const char* Telemetry::buildLoraPacket(bool reduced){
     );
 
     return json;
-}
-const char* Telemetry::getCsvHeader() const{
-
-    return
-        "millis,"
-        "state,"
-        "gpsValid,"
-        "imuValid,"
-        "sats,"
-        "date,"
-        "time,"
-        "pitch,"
-        "roll,"
-        "yaw,"
-        "servoElevator,"
-        "servoLeftAileron,"
-        "servoRightAileron,"
-        "accX,"
-        "accY,"
-        "accZ,"
-        "gyroX,"
-        "gyroY,"
-        "gyroZ,"
-        "magX,"
-        "magY,"
-        "magZ,"
-        "baroAlt,"
-        "gpsAlt,"
-        "temp,"
-        "lat,"
-        "lon,"
-        "course,"
-        "battery";
 }
 const char* Telemetry::stateToString(FlightMode state) const{
     

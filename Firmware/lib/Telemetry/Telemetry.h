@@ -3,12 +3,6 @@
 
 #include "DataTypes.h"
 
-enum FlightState
-{
-    WAITING,
-    FLYING,
-    LANDED
-};
 class Telemetry
 {
 public:

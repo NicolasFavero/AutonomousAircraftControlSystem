@@ -35,18 +35,6 @@ bool WifiAP::begin(){
 
     return true;
 }
-void WifiAP::stop(){
-    if(!running)
-        return;
-
-    server.stop();
-
-    WiFi.softAPdisconnect(true);
-
-    WiFi.mode(WIFI_OFF);
-
-    running = false;
-}
 void WifiAP::print(){
     Serial.println();
     Serial.println("========== WiFi AP ==========");
@@ -71,6 +59,18 @@ void WifiAP::print(){
 
     Serial.println("=============================");
 }
+void WifiAP::stop(){
+    if(!running)
+        return;
+
+    server.stop();
+
+    WiFi.softAPdisconnect(true);
+
+    WiFi.mode(WIFI_OFF);
+
+    running = false;
+}
 void WifiAP::update(){
     if(!running)
         return;
@@ -86,6 +86,9 @@ bool WifiAP::hasClient() const{
 uint8_t WifiAP::getConnectedClients() const{
     return WiFi.softAPgetStationNum();
 }
+void WifiAP::attachSdLogger(SdLogger* logger){
+    sdLogger = logger;
+}
 void WifiAP::setAttitude(const AttitudeData& data){
     attitude = data;
 }
@@ -95,6 +98,15 @@ void WifiAP::setNavigation(const NavigationData& data){
 void WifiAP::setSystemStatus(const SystemStatus& data){
     status = data;
 }
+void WifiAP::setTelemetryJson(const char* json){
+    telemetryJson = json;
+}
+const char* WifiAP::getRequestedLog() const{
+    return requestedLog;
+}
+const char* WifiAP::getRenameTarget() const{
+    return renameTarget;
+}
 void WifiAP::setSystemConfig(const SystemConfig& config){
     systemConfig = config;
 }
@@ -103,6 +115,15 @@ void WifiAP::setOffsets(const ImuOffsets& newOffsets){
 }
 void WifiAP::setPidConfig(const PidConfig& config){
     pidConfig = config;
+}
+void WifiAP::setFlightMode(FlightMode mode){
+    systemConfig.flightMode = mode;
+}
+void WifiAP::setCountdownRemaining(unsigned long ms){
+    countdownRemainingMs = ms;
+}
+FlightMode WifiAP::getFlightMode() const{
+    return systemConfig.flightMode;
 }
 SystemEvent WifiAP::getPendingEvent() const{
     return pendingEvent;
@@ -121,24 +142,6 @@ WifiAP::getOffsets() const{
 const PidConfig&
 WifiAP::getPidConfig() const{
     return pidConfig;
-}
-void WifiAP::sendGzip(const char* contentType, const uint8_t* data, size_t len, bool longCache){
-
-    server.sendHeader("Content-Encoding", "gzip");
-
-    server.sendHeader(
-        "Cache-Control",
-        longCache
-            ? "public, max-age=31536000, immutable"
-            : "no-cache"
-    );
-
-    server.send_P(
-        200,
-        contentType,
-        reinterpret_cast<PGM_P>(data),
-        len
-    );
 }
 void WifiAP::configureRoutes(){
     /*
@@ -346,6 +349,24 @@ void WifiAP::configureRoutes(){
     {
         handleNotFound();
     });
+}
+void WifiAP::sendGzip(const char* contentType, const uint8_t* data, size_t len, bool longCache){
+
+    server.sendHeader("Content-Encoding", "gzip");
+
+    server.sendHeader(
+        "Cache-Control",
+        longCache
+            ? "public, max-age=31536000, immutable"
+            : "no-cache"
+    );
+
+    server.send_P(
+        200,
+        contentType,
+        reinterpret_cast<PGM_P>(data),
+        len
+    );
 }
 void WifiAP::handleConfig(){
     sendJsonConfig();
@@ -616,11 +637,6 @@ void WifiAP::handleResetFlight(){
         "Flight Reset"
     );
 }
-void WifiAP::handleDeleteAllLogs(){
-    pendingEvent = SystemEvent::DELETE_ALL_LOGS;
-
-    sendJsonSuccess("Delete Requested");
-}
 void WifiAP::handleLogs(){
     if(sdLogger == nullptr)
     {
@@ -641,6 +657,11 @@ void WifiAP::handleLogs(){
         "application/json",
         json
     );
+}
+void WifiAP::handleDeleteAllLogs(){
+    pendingEvent = SystemEvent::DELETE_ALL_LOGS;
+
+    sendJsonSuccess("Delete Requested");
 }
 void WifiAP::handleDeleteLog(){
     if(!server.hasArg("file"))
@@ -800,6 +821,24 @@ void WifiAP::handleDownloadLog(){
 
     file.close();
 }
+void WifiAP::handleTelemetry(){
+
+    server.send(
+        200,
+        "application/json",
+        telemetryJson ? telemetryJson : "{}"
+    );
+
+    // Nada disparava SystemEvent::TELEMETRY_REQUEST antes -- por isso
+    // telemetryJson ficava sempre nullptr e a pagina Console so via "{}".
+    // So pede um pacote novo se nao houver outro evento (offset/sistema/
+    // lora/log) ja esperando para nao atropela-lo -- pendingEvent guarda
+    // só 1 evento por vez.
+    if(pendingEvent == SystemEvent::NONE)
+    {
+        pendingEvent = SystemEvent::TELEMETRY_REQUEST;
+    }
+}
 void WifiAP::handleRestart(){
     pendingEvent =
         SystemEvent::RESTART;
@@ -955,40 +994,6 @@ void WifiAP::sendJsonStatus(){
         statusJson
     );
 }
-void WifiAP::sendJsonSuccess(const char* message){
-
-    snprintf(
-        messageJson,
-        sizeof(messageJson),
-
-        "{\"success\":true,\"message\":\"%s\"}",
-
-        message
-    );
-
-    server.send(
-        200,
-        "application/json",
-        messageJson
-    );
-}
-void WifiAP::sendJsonError(const char* message){
-
-    snprintf(
-        messageJson,
-        sizeof(messageJson),
-
-        "{\"success\":false,\"message\":\"%s\"}",
-
-        message
-    );
-
-    server.send(
-        400,
-        "application/json",
-        messageJson
-    );
-}
 void WifiAP::sendJsonConfig(){
     snprintf(
         statusJson,
@@ -1065,42 +1070,37 @@ void WifiAP::sendJsonConfig(){
         statusJson
     );
 }
-void WifiAP::handleTelemetry(){
+void WifiAP::sendJsonSuccess(const char* message){
+
+    snprintf(
+        messageJson,
+        sizeof(messageJson),
+
+        "{\"success\":true,\"message\":\"%s\"}",
+
+        message
+    );
 
     server.send(
         200,
         "application/json",
-        telemetryJson ? telemetryJson : "{}"
+        messageJson
+    );
+}
+void WifiAP::sendJsonError(const char* message){
+
+    snprintf(
+        messageJson,
+        sizeof(messageJson),
+
+        "{\"success\":false,\"message\":\"%s\"}",
+
+        message
     );
 
-    // Nada disparava SystemEvent::TELEMETRY_REQUEST antes -- por isso
-    // telemetryJson ficava sempre nullptr e a pagina Console so via "{}".
-    // So pede um pacote novo se nao houver outro evento (offset/sistema/
-    // lora/log) ja esperando para nao atropela-lo -- pendingEvent guarda
-    // só 1 evento por vez.
-    if(pendingEvent == SystemEvent::NONE)
-    {
-        pendingEvent = SystemEvent::TELEMETRY_REQUEST;
-    }
-}
-void WifiAP::setTelemetryJson(const char* json){
-    telemetryJson = json;
-}
-void WifiAP::setFlightMode(FlightMode mode){
-    systemConfig.flightMode = mode;
-}
-void WifiAP::setCountdownRemaining(unsigned long ms){
-    countdownRemainingMs = ms;
-}
-FlightMode WifiAP::getFlightMode() const{
-    return systemConfig.flightMode;
-}
-const char* WifiAP::getRequestedLog() const{
-    return requestedLog;
-}
-const char* WifiAP::getRenameTarget() const{
-    return renameTarget;
-}
-void WifiAP::attachSdLogger(SdLogger* logger){
-    sdLogger = logger;
+    server.send(
+        400,
+        "application/json",
+        messageJson
+    );
 }

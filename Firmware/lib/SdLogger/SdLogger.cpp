@@ -41,96 +41,6 @@ bool SdLogger::createFile(){
 
     return true;
 }
-bool SdLogger::selfTest(){
-    // Teste independente do log de voo -- usa um arquivo proprio
-    // (testeSD.txt) em vez do "file"/fileOpen usados por
-    // createFile()/saveLine(). Antes o teste reaproveitava
-    // saveLine(), que só escreve se ja existir um arquivo de voo
-    // aberto (fileOpen==true) -- como isso só acontece quando o
-    // voo comeca de verdade, testar o SD antes do voo sempre dava
-    // falso negativo mesmo com o cartao funcionando.
-
-    if (!mounted && !sd.begin(csPin, SD_SCK_MHZ(20)))
-        return false;
-
-    mounted = true;
-
-    SdFile testFile;
-
-    if (!testFile.open("/testeSD.txt", O_WRITE | O_CREAT | O_TRUNC))
-        return false;
-
-    bool ok = testFile.println("Teste de SD OK") > 0;
-
-    testFile.close();
-
-    return ok;
-}
-bool SdLogger::openFile(){
-
-    if (!file.open(
-            currentFile,
-            O_WRITE | O_CREAT | O_TRUNC)) {
-        return false;
-    }
-
-    fileOpen = true;
-    return true;
-}
-bool SdLogger::reopenCurrentFile(){
-
-    if (fileOpen) {
-        file.close();
-    }
-
-    fileOpen = false;
-
-    if (!sd.begin(csPin, SD_SCK_MHZ(20))) {
-        return false;
-    }
-
-    if (!file.open(
-            currentFile,
-            O_WRITE | O_APPEND)) {
-        return false;
-    }
-
-    fileOpen = true;
-    return true;
-}
-bool SdLogger::saveLine(const char* line){
-
-    if (!fileOpen) {
-        return false;
-    }
-
-    if (!file.println(line)) {
-
-        if (!reopenCurrentFile()) {
-            return false;
-        }
-
-        if (!file.println(line)) {
-            return false;
-        }
-    }
-
-    syncCounter++;
-
-    if (syncCounter >= SYNC_INTERVAL) {
-
-        if (!file.sync()) {
-
-            if (!reopenCurrentFile()) {
-                return false;
-            }
-        }
-
-        syncCounter = 0;
-    }
-
-    return true;
-}
 bool SdLogger::beginBuffer(size_t capacityBytes){
 
     if (buffer != nullptr)
@@ -217,82 +127,28 @@ bool SdLogger::flushBuffer(){
 
     return ok;
 }
-void SdLogger::closeFile(){
-    if (!fileOpen) {
-        return;
-    }
+bool SdLogger::selfTest(){
+    // Teste independente do log de voo -- usa um arquivo proprio
+    // (testeSD.txt) em vez do "file"/fileOpen usados por
+    // createFile()/saveLine(). Antes o teste reaproveitava
+    // saveLine(), que só escreve se ja existir um arquivo de voo
+    // aberto (fileOpen==true) -- como isso só acontece quando o
+    // voo comeca de verdade, testar o SD antes do voo sempre dava
+    // falso negativo mesmo com o cartao funcionando.
 
-    file.sync();
-    file.close();
-
-    syncCounter = 0;
-    fileOpen = false;
-
-    Serial.println("LOG FINALIZADO");
-}
-bool SdLogger::isOpen() const{
-    return fileOpen;
-}
-const char* SdLogger::getFileName() const{
-    return currentFile;
-}
-void SdLogger::generateFileName(){
-
-    for (uint16_t i = 1; i < 10000; i++) {
-
-        snprintf(
-            currentFile,
-            sizeof(currentFile),
-            "/voo%u.csv",
-            i
-        );
-
-        if (!sd.exists(currentFile)) {
-            return;
-        }
-    }
-
-    strcpy(currentFile, "/voo9999.csv");
-}
-void SdLogger::flush(){
-
-    if (!fileOpen) {
-        return;
-    }
-
-    file.sync();
-}
-bool SdLogger::removeAllLogs(){
-    closeFile();
-
-    if(!mounted && !sd.begin(csPin, SD_SCK_MHZ(20)))
+    if (!mounted && !sd.begin(csPin, SD_SCK_MHZ(20)))
         return false;
 
     mounted = true;
 
-    SdFile dir;
-    SdFile entry;
+    SdFile testFile;
 
-    if(!dir.open("/"))
+    if (!testFile.open("/testeSD.txt", O_WRITE | O_CREAT | O_TRUNC))
         return false;
 
-    bool ok = true;
+    bool ok = testFile.println("Teste de SD OK") > 0;
 
-    while(entry.openNext(&dir, O_RDONLY))
-    {
-        char name[64];
-
-        entry.getName(name, sizeof(name));
-        entry.close();
-
-        if(endsWithCsv(name))
-        {
-            if(!sd.remove(name))
-                ok = false;
-        }
-    }
-
-    dir.close();
+    testFile.close();
 
     return ok;
 }
@@ -350,8 +206,39 @@ bool SdLogger::removeFile(const char* filename){
 
     return sd.remove(filename);
 }
-bool SdLogger::openRead(const char* filename, File32& file){
-    return file.open(filename, O_RDONLY);
+bool SdLogger::removeAllLogs(){
+    closeFile();
+
+    if(!mounted && !sd.begin(csPin, SD_SCK_MHZ(20)))
+        return false;
+
+    mounted = true;
+
+    SdFile dir;
+    SdFile entry;
+
+    if(!dir.open("/"))
+        return false;
+
+    bool ok = true;
+
+    while(entry.openNext(&dir, O_RDONLY))
+    {
+        char name[64];
+
+        entry.getName(name, sizeof(name));
+        entry.close();
+
+        if(endsWithCsv(name))
+        {
+            if(!sd.remove(name))
+                ok = false;
+        }
+    }
+
+    dir.close();
+
+    return ok;
 }
 bool SdLogger::renameFile(const char* oldName, const char* newName){
     closeFile();
@@ -368,4 +255,117 @@ bool SdLogger::renameFile(const char* oldName, const char* newName){
         return false;
 
     return sd.rename(oldName, newName);
+}
+bool SdLogger::openRead(const char* filename, File32& file){
+    return file.open(filename, O_RDONLY);
+}
+void SdLogger::closeFile(){
+    if (!fileOpen) {
+        return;
+    }
+
+    file.sync();
+    file.close();
+
+    syncCounter = 0;
+    fileOpen = false;
+
+    Serial.println("LOG FINALIZADO");
+}
+bool SdLogger::isOpen() const{
+    return fileOpen;
+}
+const char* SdLogger::getFileName() const{
+    return currentFile;
+}
+bool SdLogger::openFile(){
+
+    if (!file.open(
+            currentFile,
+            O_WRITE | O_CREAT | O_TRUNC)) {
+        return false;
+    }
+
+    fileOpen = true;
+    return true;
+}
+void SdLogger::generateFileName(){
+
+    for (uint16_t i = 1; i < 10000; i++) {
+
+        snprintf(
+            currentFile,
+            sizeof(currentFile),
+            "/voo%u.csv",
+            i
+        );
+
+        if (!sd.exists(currentFile)) {
+            return;
+        }
+    }
+
+    strcpy(currentFile, "/voo9999.csv");
+}
+bool SdLogger::reopenCurrentFile(){
+
+    if (fileOpen) {
+        file.close();
+    }
+
+    fileOpen = false;
+
+    if (!sd.begin(csPin, SD_SCK_MHZ(20))) {
+        return false;
+    }
+
+    if (!file.open(
+            currentFile,
+            O_WRITE | O_APPEND)) {
+        return false;
+    }
+
+    fileOpen = true;
+    return true;
+}
+bool SdLogger::saveLine(const char* line){
+
+    if (!fileOpen) {
+        return false;
+    }
+
+    if (!file.println(line)) {
+
+        if (!reopenCurrentFile()) {
+            return false;
+        }
+
+        if (!file.println(line)) {
+            return false;
+        }
+    }
+
+    syncCounter++;
+
+    if (syncCounter >= SYNC_INTERVAL) {
+
+        if (!file.sync()) {
+
+            if (!reopenCurrentFile()) {
+                return false;
+            }
+        }
+
+        syncCounter = 0;
+    }
+
+    return true;
+}
+void SdLogger::flush(){
+
+    if (!fileOpen) {
+        return;
+    }
+
+    file.sync();
 }

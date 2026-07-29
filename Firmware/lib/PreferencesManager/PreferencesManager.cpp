@@ -63,18 +63,6 @@ namespace PreferencesKeys
                     Private
 ==========================================================
 */
-bool PreferencesManager::openNamespace(Preferences& nvs,bool readOnly){
-
-    return nvs.begin(
-        PreferencesKeys::NAMESPACE,
-        readOnly
-    );
-}
-/*
-==========================================================
-                Initialization
-==========================================================
-*/
 bool PreferencesManager::initialize(){
 
     Preferences nvs;
@@ -99,6 +87,41 @@ bool PreferencesManager::initialize(){
                     Load
 ==========================================================
 */
+bool PreferencesManager::loadSystem(SystemConfig& config){
+
+    Preferences nvs;
+
+    if(!openNamespace(nvs, true))
+        return false;
+
+    config.batteryLimit =
+        nvs.getFloat(
+            PreferencesKeys::BATTERY_LIMIT,
+            7.5f
+        );
+
+    config.telemetryPeriodMs =
+        nvs.getUShort(
+            PreferencesKeys::TELEMETRY_MS,
+            100
+        );
+
+    config.wifiEnabled =
+        nvs.getBool(
+            PreferencesKeys::WIFI_ENABLED,
+            true
+        );
+
+    config.estimatedFlightTimeMin =
+        nvs.getUShort(
+            PreferencesKeys::FLIGHT_TIME,
+            30
+        );
+
+    nvs.end();
+
+    return true;
+}
 bool PreferencesManager::loadOffsets(ImuOffsets& offsets){
 
     Preferences nvs;
@@ -146,41 +169,6 @@ bool PreferencesManager::loadPid(PidConfig& config){
     config.yaw.kp = nvs.getFloat(PreferencesKeys::PID_YAW_KP, 0.0f);
     config.yaw.ki = nvs.getFloat(PreferencesKeys::PID_YAW_KI, 0.0f);
     config.yaw.kd = nvs.getFloat(PreferencesKeys::PID_YAW_KD, 0.0f);
-
-    nvs.end();
-
-    return true;
-}
-bool PreferencesManager::loadSystem(SystemConfig& config){
-
-    Preferences nvs;
-
-    if(!openNamespace(nvs, true))
-        return false;
-
-    config.batteryLimit =
-        nvs.getFloat(
-            PreferencesKeys::BATTERY_LIMIT,
-            7.5f
-        );
-
-    config.telemetryPeriodMs =
-        nvs.getUShort(
-            PreferencesKeys::TELEMETRY_MS,
-            100
-        );
-
-    config.wifiEnabled =
-        nvs.getBool(
-            PreferencesKeys::WIFI_ENABLED,
-            true
-        );
-
-    config.estimatedFlightTimeMin =
-        nvs.getUShort(
-            PreferencesKeys::FLIGHT_TIME,
-            30
-        );
 
     nvs.end();
 
@@ -256,6 +244,47 @@ bool PreferencesManager::loadAll(SystemConfig& system, ImuOffsets& offsets){
                     Save
 ==========================================================
 */
+bool PreferencesManager::saveSystem(const SystemConfig& config){
+
+    Preferences nvs;
+
+    if(!openNamespace(nvs, false))
+        return false;
+
+    bool ok = true;
+
+    ok &= (
+        nvs.putFloat(
+            PreferencesKeys::BATTERY_LIMIT,
+            config.batteryLimit
+        ) > 0
+    );
+
+    ok &= (
+        nvs.putUShort(
+            PreferencesKeys::TELEMETRY_MS,
+            config.telemetryPeriodMs
+        ) > 0
+    );
+
+    ok &= (
+        nvs.putBool(
+            PreferencesKeys::WIFI_ENABLED,
+            config.wifiEnabled
+        ) > 0
+    );
+
+    ok &= (
+        nvs.putUShort(
+            PreferencesKeys::FLIGHT_TIME,
+            config.estimatedFlightTimeMin
+        ) > 0
+    );
+
+    nvs.end();
+
+    return ok;
+}
 bool PreferencesManager::saveOffsets(const ImuOffsets& offsets){
 
     Preferences nvs;
@@ -310,47 +339,6 @@ bool PreferencesManager::savePid(const PidConfig& config){
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KP, config.yaw.kp) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KI, config.yaw.ki) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KD, config.yaw.kd) > 0);
-
-    nvs.end();
-
-    return ok;
-}
-bool PreferencesManager::saveSystem(const SystemConfig& config){
-
-    Preferences nvs;
-
-    if(!openNamespace(nvs, false))
-        return false;
-
-    bool ok = true;
-
-    ok &= (
-        nvs.putFloat(
-            PreferencesKeys::BATTERY_LIMIT,
-            config.batteryLimit
-        ) > 0
-    );
-
-    ok &= (
-        nvs.putUShort(
-            PreferencesKeys::TELEMETRY_MS,
-            config.telemetryPeriodMs
-        ) > 0
-    );
-
-    ok &= (
-        nvs.putBool(
-            PreferencesKeys::WIFI_ENABLED,
-            config.wifiEnabled
-        ) > 0
-    );
-
-    ok &= (
-        nvs.putUShort(
-            PreferencesKeys::FLIGHT_TIME,
-            config.estimatedFlightTimeMin
-        ) > 0
-    );
 
     nvs.end();
 
@@ -606,3 +594,15 @@ void PreferencesManager::printAll(Stream& stream){
 
     nvs.end();
 }
+bool PreferencesManager::openNamespace(Preferences& nvs,bool readOnly){
+
+    return nvs.begin(
+        PreferencesKeys::NAMESPACE,
+        readOnly
+    );
+}
+/*
+==========================================================
+                Initialization
+==========================================================
+*/

@@ -164,17 +164,3 @@ float IMU::getGyroZ() const {return gyroZ;}
 float IMU::getMagX() const {return magX;}
 float IMU::getMagY() const {return magY;}
 float IMU::getMagZ() const {return magZ;}
-
-const char* IMU::packet(){
-
-    snprintf(
-        packetBuffer,
-        sizeof(packetBuffer),
-        "%.1f,%.1f,%.1f",
-        roll,
-        pitch,
-        yaw
-    );
-
-    return packetBuffer;
-}

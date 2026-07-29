@@ -10,7 +10,7 @@ class PID {
     public:
         PID(){};
 
-        void setAngles(ServoPositions& angle, AttitudeData& attitudeData, NavigationData& nav, bool gpsData);
+        void setAngles(AttitudeData& attitudeData, NavigationData& nav, bool gpsData);
 
         struct PID_variables{
             // Antes sem valor inicial nenhum -- kp/ki/kd/integralLimit
@@ -37,8 +37,6 @@ class PID {
         PID_variables roll;
         PID_variables yaw; // Ainda nao usado em computePID, so guarda o valor pro futuro.
 
-    private:
-
         struct ServoParamters{
 
             float setAngle = 90.0f;
@@ -47,9 +45,18 @@ class PID {
             float neutralAngle = 90.0f;
         };
 
+        // Publicos: antes o angulo final de cada servo saia daqui via
+        // uma struct ServoPositions separada (em DataTypes.h), so pra
+        // copiar de volta esses mesmos 3 valores pro chamador. Como
+        // ninguem alem do main.cpp lia essa copia, o main.cpp agora le
+        // o angulo direto daqui (ex: pid.elevator.setAngle) e a copia
+        // -- e a struct ServoPositions inteira -- deixou de existir.
         ServoParamters elevator;
         ServoParamters leftAileron;
         ServoParamters rightAileron;
+
+    private:
+
         // Histórico de tempo
         uint32_t lastTime = 0;
 

@@ -3,10 +3,10 @@
 #include <RadioLib.h>
 #include "DataTypes.h" //only to use Struct LoraConfig
 
-class LoRa {
+class RF96W {
 public:
 
-    LoRa(
+    RF96W(
     uint8_t cs,
     uint8_t dio0,
     uint8_t rst,

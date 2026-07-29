@@ -98,12 +98,6 @@ public:
 
     const PidConfig& getPidConfig() const;
 
-    /*
-    ==========================================================
-                           States
-    ==========================================================
-    */
-
     private:
 
         SdLogger* sdLogger = nullptr;
@@ -238,12 +232,4 @@ public:
         char statusJson[STATUS_JSON_SIZE];
 
         char messageJson[MESSAGE_JSON_SIZE];
-        /*
-        ==========================================================
-                            States
-        ==========================================================
-        */
-        bool flightStarted = false;
-
-        bool countdownRunning = false;
 };

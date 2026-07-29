@@ -45,13 +45,6 @@ struct NavigationData{
 };
 
 
-struct ServoPositions{
-    float elevator =  90.0f;
-    float leftAileron = 90.0f;
-    float rightAileron = 90.0f;
-};
-
-
 /*==========================================================
                     IMU Offsets
 ==========================================================*/

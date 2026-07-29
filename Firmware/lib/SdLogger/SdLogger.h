@@ -10,7 +10,6 @@ public:
     bool begin();
 
     bool createFile();
-    bool saveLine(const char* line);
 
     // Buffer em RAM/PSRAM: usado durante COUNTDOWN/FLIGHT pra nao
     // bloquear o loop de controle com uma escrita no SD a cada
@@ -32,7 +31,6 @@ public:
     bool renameFile(const char* oldName, const char* newName);
     bool openRead(const char* filename, File32& file);
 
-    void flush();
     void closeFile();
 
     bool isOpen() const;
@@ -63,4 +61,10 @@ private:
     bool openFile();
     void generateFileName();
     bool reopenCurrentFile();
+
+    // So usadas internamente por bufferLine()/flushBuffer() -- nenhum
+    // chamador externo (main.cpp/WifiAP) grava direto no cartao sem
+    // passar pelo buffer, entao nao precisam ser publicas.
+    bool saveLine(const char* line);
+    void flush();
 };

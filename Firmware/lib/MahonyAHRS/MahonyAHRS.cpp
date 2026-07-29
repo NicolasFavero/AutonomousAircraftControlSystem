@@ -21,88 +21,6 @@ void MahonyAHRS::reset() {
     integralFBx = 0.0f; integralFBy = 0.0f; integralFBz = 0.0f;
 }
 
-float MahonyAHRS::invSqrt(float x) {
-    // 1/sqrt(x) direto -- nao usamos o truque de bit-hack "fast inverse
-    // sqrt" (aquele do Quake): no ESP32-S3 o FPU de hardware calcula sqrtf
-    // rapido o bastante, e o truque de bits perde precisao à toa aqui.
-    return 1.0f / sqrtf(x);
-}
-
-void MahonyAHRS::updateIMU(float dt,
-                            float gx, float gy, float gz,
-                            float ax, float ay, float az) {
-    float recipNorm;
-    float halfvx, halfvy, halfvz;
-    float halfex, halfey, halfez;
-    float qa, qb, qc;
-
-    // Giroscopio: graus/s -> rad/s
-    gx *= DEG_TO_RAD_F;
-    gy *= DEG_TO_RAD_F;
-    gz *= DEG_TO_RAD_F;
-
-    // So usa a correcao do acelerometro se a leitura nao for invalida
-    // (evita divisao por zero se ax=ay=az=0, ex.: sensor ainda nao leu nada)
-    if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
-
-        // Normaliza o vetor de aceleracao medido
-        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-        ax *= recipNorm;
-        ay *= recipNorm;
-        az *= recipNorm;
-
-        // Vetor "gravidade estimada" a partir do quaternion atual (metade,
-        // ja simplificado algebricamente -- forma padrao da referencia
-        // Mahony/Madgwick de codigo aberto)
-        halfvx = q1 * q3 - q0 * q2;
-        halfvy = q0 * q1 + q2 * q3;
-        halfvz = q0 * q0 - 0.5f + q3 * q3;
-
-        // Erro = produto vetorial entre a gravidade medida e a estimada
-        halfex = (ay * halfvz - az * halfvy);
-        halfey = (az * halfvx - ax * halfvz);
-        halfez = (ax * halfvy - ay * halfvx);
-
-        // Feedback integral (estima e compensa o bias do giroscopio)
-        if (twoKi > 0.0f) {
-            integralFBx += twoKi * halfex * dt;
-            integralFBy += twoKi * halfey * dt;
-            integralFBz += twoKi * halfez * dt;
-            gx += integralFBx;
-            gy += integralFBy;
-            gz += integralFBz;
-        } else {
-            integralFBx = 0.0f;
-            integralFBy = 0.0f;
-            integralFBz = 0.0f;
-        }
-
-        // Feedback proporcional
-        gx += twoKp * halfex;
-        gy += twoKp * halfey;
-        gz += twoKp * halfez;
-    }
-
-    // Integracao do quaternion (metodo de Euler de 1a ordem)
-    gx *= (0.5f * dt);
-    gy *= (0.5f * dt);
-    gz *= (0.5f * dt);
-    qa = q0;
-    qb = q1;
-    qc = q2;
-    q0 += (-qb * gx - qc * gy - q3 * gz);
-    q1 += (qa * gx + qc * gz - q3 * gy);
-    q2 += (qa * gy - qb * gz + q3 * gx);
-    q3 += (qa * gz + qb * gy - qc * gx);
-
-    // Normaliza o quaternion
-    recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    q0 *= recipNorm;
-    q1 *= recipNorm;
-    q2 *= recipNorm;
-    q3 *= recipNorm;
-}
-
 void MahonyAHRS::update(float dt,
                          float gx, float gy, float gz,
                          float ax, float ay, float az,
@@ -210,8 +128,79 @@ void MahonyAHRS::update(float dt,
     q3 *= recipNorm;
 }
 
-void MahonyAHRS::getQuaternion(float &w, float &x, float &y, float &z) const {
-    w = q0; x = q1; y = q2; z = q3;
+void MahonyAHRS::updateIMU(float dt,
+                            float gx, float gy, float gz,
+                            float ax, float ay, float az) {
+    float recipNorm;
+    float halfvx, halfvy, halfvz;
+    float halfex, halfey, halfez;
+    float qa, qb, qc;
+
+    // Giroscopio: graus/s -> rad/s
+    gx *= DEG_TO_RAD_F;
+    gy *= DEG_TO_RAD_F;
+    gz *= DEG_TO_RAD_F;
+
+    // So usa a correcao do acelerometro se a leitura nao for invalida
+    // (evita divisao por zero se ax=ay=az=0, ex.: sensor ainda nao leu nada)
+    if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+
+        // Normaliza o vetor de aceleracao medido
+        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+
+        // Vetor "gravidade estimada" a partir do quaternion atual (metade,
+        // ja simplificado algebricamente -- forma padrao da referencia
+        // Mahony/Madgwick de codigo aberto)
+        halfvx = q1 * q3 - q0 * q2;
+        halfvy = q0 * q1 + q2 * q3;
+        halfvz = q0 * q0 - 0.5f + q3 * q3;
+
+        // Erro = produto vetorial entre a gravidade medida e a estimada
+        halfex = (ay * halfvz - az * halfvy);
+        halfey = (az * halfvx - ax * halfvz);
+        halfez = (ax * halfvy - ay * halfvx);
+
+        // Feedback integral (estima e compensa o bias do giroscopio)
+        if (twoKi > 0.0f) {
+            integralFBx += twoKi * halfex * dt;
+            integralFBy += twoKi * halfey * dt;
+            integralFBz += twoKi * halfez * dt;
+            gx += integralFBx;
+            gy += integralFBy;
+            gz += integralFBz;
+        } else {
+            integralFBx = 0.0f;
+            integralFBy = 0.0f;
+            integralFBz = 0.0f;
+        }
+
+        // Feedback proporcional
+        gx += twoKp * halfex;
+        gy += twoKp * halfey;
+        gz += twoKp * halfez;
+    }
+
+    // Integracao do quaternion (metodo de Euler de 1a ordem)
+    gx *= (0.5f * dt);
+    gy *= (0.5f * dt);
+    gz *= (0.5f * dt);
+    qa = q0;
+    qb = q1;
+    qc = q2;
+    q0 += (-qb * gx - qc * gy - q3 * gz);
+    q1 += (qa * gx + qc * gz - q3 * gy);
+    q2 += (qa * gy - qb * gz + q3 * gx);
+    q3 += (qa * gz + qb * gy - qc * gx);
+
+    // Normaliza o quaternion
+    recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+    q0 *= recipNorm;
+    q1 *= recipNorm;
+    q2 *= recipNorm;
+    q3 *= recipNorm;
 }
 
 float MahonyAHRS::getRoll() const {
@@ -229,4 +218,15 @@ float MahonyAHRS::getPitch() const {
 float MahonyAHRS::getYaw() const {
     float raw = atan2f(2.0f * (q0 * q3 + q1 * q2), 1.0f - 2.0f * (q2 * q2 + q3 * q3));
     return raw * RAD_TO_DEG_F;
+}
+
+void MahonyAHRS::getQuaternion(float &w, float &x, float &y, float &z) const {
+    w = q0; x = q1; y = q2; z = q3;
+}
+
+float MahonyAHRS::invSqrt(float x) {
+    // 1/sqrt(x) direto -- nao usamos o truque de bit-hack "fast inverse
+    // sqrt" (aquele do Quake): no ESP32-S3 o FPU de hardware calcula sqrtf
+    // rapido o bastante, e o truque de bits perde precisao à toa aqui.
+    return 1.0f / sqrtf(x);
 }
