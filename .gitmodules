@@ -1,0 +1,3 @@
+[submodule "tools/gpsConfig"]
+	path = tools/gpsConfig
+	url = https://github.com/NicolasFavero/ublox-gps-configurator.git
