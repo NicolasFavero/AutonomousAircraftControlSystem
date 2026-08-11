@@ -1,0 +1,102 @@
+<section>
+<h2>Status do Sistema</h2>
+
+<div class="actions">
+<button class="secondary" id="refreshStatus">Atualizar Agora</button>
+<label class="inline">
+<input type="checkbox" id="autoStatus" checked>
+Atualização automática
+</label>
+</div>
+
+<div class="grid">
+
+<div class="card">
+<h3>Diagnóstico</h3>
+<table>
+
+<tr>
+<td>IMU</td>
+<td><span class="led" id="imuLed"></span></td>
+</tr>
+
+<tr>
+<td>GPS</td>
+<td><span class="led" id="gpsLed"></span></td>
+</tr>
+
+<tr>
+<td>BMP280</td>
+<td><span class="led" id="bmpLed"></span></td>
+</tr>
+
+<tr>
+<td>LoRa</td>
+<td class="diagCell">
+<button class="secondary small" id="testLora">Enviar Pacote</button>
+<span class="led" id="loraLed"></span>
+</td>
+</tr>
+
+<tr>
+<td>Cartão SD</td>
+<td class="diagCell">
+<button class="secondary small" id="checkSd">Testar SD</button>
+<span class="led" id="sdLed"></span>
+</td>
+</tr>
+
+</table>
+</div>
+
+<div class="card">
+<h3>Atitude</h3>
+<table>
+<tr><td>Pitch</td><td id="pitch">-</td></tr>
+<tr><td>Roll</td><td id="roll">-</td></tr>
+<tr><td>Yaw</td><td id="yaw">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>GPS</h3>
+<table>
+<tr><td>Latitude</td><td id="latitude">-</td></tr>
+<tr><td>Longitude</td><td id="longitude">-</td></tr>
+<tr><td>Altitude GPS</td><td id="gpsAltitude">-</td></tr>
+<tr><td>Satélites</td><td id="satellites">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Barômetro</h3>
+<table>
+<tr><td>Altitude</td><td id="baroAltitude">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Pitot</h3>
+<table>
+<tr><td>Velocidade</td><td id="airspeed">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Energia</h3>
+<table>
+<tr><td>Bateria</td><td id="battery">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Modo de Operação</h3>
+<table>
+<tr><td>Modo</td><td id="flightMode">-</td></tr>
+<tr><td>Clientes WiFi</td><td id="wifiClients">-</td></tr>
+</table>
+</div>
+
+</div>
+
+</section>

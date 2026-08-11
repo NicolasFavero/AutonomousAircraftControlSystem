@@ -1,0 +1,81 @@
+<section>
+<h2>Offsets da IMU</h2>
+
+<div class="card">
+
+<h3>Leitura Atual</h3>
+
+<table>
+<tr>
+<td>Pitch</td>
+<td><span id="pitchNow">--</span> °</td>
+<td><button class="secondary small" id="zeroPitch">Zerar</button></td>
+</tr>
+
+<tr>
+<td>Roll</td>
+<td><span id="rollNow">--</span> °</td>
+<td><button class="secondary small" id="zeroRoll">Zerar</button></td>
+</tr>
+
+<tr>
+<td>Yaw</td>
+<td><span id="yawNow">--</span> °</td>
+<td><button class="secondary small" id="zeroYaw">Zerar</button></td>
+</tr>
+
+<tr>
+<td>Pitot</td>
+<td><span id="pitotRawNow">--</span> V</td>
+<td><button class="secondary small" id="zeroPitot">Zerar</button></td>
+</tr>
+
+<tr>
+<td>Velocidade (Pitot)</td>
+<td><span id="airspeed">--</span> m/s</td>
+<td></td>
+</tr>
+
+</table>
+
+<button class="secondary" id="refreshImu">Atualizar Leitura</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Offsets Atuais</h3>
+
+<table>
+
+<tr>
+<td>Pitch (°)</td>
+<td><input id="pitchOffset" type="number" step="0.01"></td>
+</tr>
+
+<tr>
+<td>Roll (°)</td>
+<td><input id="rollOffset" type="number" step="0.01"></td>
+</tr>
+
+<tr>
+<td>Yaw (°)</td>
+<td><input id="yawOffset" type="number" step="0.01"></td>
+</tr>
+
+<tr>
+<td>Pitot -- zero (V)</td>
+<td><input id="pitotOffset" type="number" step="0.0001"></td>
+</tr>
+
+</table>
+
+</div>
+
+
+<button id="saveOffsets" class="primary">
+Salvar Alterações
+</button>
+
+</section>

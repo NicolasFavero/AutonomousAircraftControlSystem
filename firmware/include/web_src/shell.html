@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Asa Autônoma</title>
+<link rel="stylesheet" href="/style.css?v=__CSS_VER__">
+</head>
+<body>
+<header>
+<button id="menuButton" aria-label="Menu">&#9776;</button>
+<h1>Asa Autônoma</h1>
+</header>
+
+<div id="overlay"></div>
+
+<nav id="menu">
+<button data-page="status">Status</button>
+<button data-page="flight">Controle de Voo</button>
+<button data-page="logs">Logs</button>
+<button data-page="offsets">Offsets</button>
+<button data-page="pid">PID</button>
+<button data-page="servos">Servos</button>
+<button data-page="system">Telemetria</button>
+<button data-page="lora">LoRa</button>
+<button data-page="gps">GPS</button>
+<button data-page="console">Console</button>
+</nav>
+
+<main id="content"></main>
+
+<div id="toastBox"></div>
+
+<div id="modalOverlay">
+<div class="modalBox" id="modalBox"></div>
+</div>
+
+<script src="/script.js?v=__JS_VER__" defer></script>
+</body>
+</html>

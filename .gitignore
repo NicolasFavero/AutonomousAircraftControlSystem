@@ -1,8 +1,50 @@
-=======
 .pio/
 .pioenvs/
 .piolibdeps/
 .clang_complete
 .gcc-flags.json
 
->>>>>>> Stashed changes
+# ==========================
+# Sistema
+# ==========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================
+# Arduino IDE
+# ==========================
+build/
+build-*/
+*.elf
+*.bin
+*.hex
+*.eep
+
+# ==========================
+# VSCode
+# ==========================
+.vscode/
+
+# ==========================
+# KiCad
+# ==========================
+*-backups/
+__pycache__/
+fp-info-cache
+
+# Arquivos temporários
+*.bak
+*.tmp
+*.log
+
+# Arquivos de cache
+*.kicad_prl
+*.lck
+
+# ==========================
+# Gerbers (opcional)
+# Comente estas linhas se quiser versionar os Gerbers
+# ==========================
+# Gerbers/
+# Fabrication/

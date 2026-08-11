@@ -1,0 +1,63 @@
+<section>
+<h2>Controle de Voo</h2>
+
+<div class="card">
+<h3>Estado Atual</h3>
+<table>
+<tr><td>Modo</td><td id="flightMode">CONFIG</td></tr>
+<tr><td>Clientes WiFi</td><td id="wifiClients">0</td></tr>
+<tr><td>Bateria</td><td id="battery">0.00 V</td></tr>
+</table>
+</div>
+
+<div class="card" id="countdownCard" style="display:none;">
+<h3>Contagem Regressiva</h3>
+<p id="countdownNumber" style="font-size:2.5em; text-align:center; margin:0.2em 0;">--</p>
+<p class="warn">Decolagem em andamento — prepare-se para lançar.</p>
+<p>Arquivo de log: <span id="countdownFile">-</span></p>
+<button id="cancelCountdown" class="danger">Cancelar Voo</button>
+</div>
+
+<div class="card" id="flightActiveCard" style="display:none;">
+<h3>Voo em Andamento</h3>
+<p>A aeronave está em voo. Acompanhe pela aba Status.</p>
+</div>
+
+<div class="card">
+<h3>Modo de Voo</h3>
+<table>
+<tr>
+<td>Modo</td>
+<td><span class="tag tag-info">WiFi</span></td>
+</tr>
+</table>
+<p>Único modo disponível por enquanto: o WiFi continua ativo durante o voo, então você pode acompanhar o status e finalizar o voo remotamente. Os logs no cartão SD e o envio via LoRa continuam normalmente.</p>
+</div>
+
+<div class="card">
+<h3>Comandos</h3>
+<p class="warn">Ao iniciar o voo, as configurações ficam bloqueadas até o pouso -- a não ser que a opção abaixo esteja marcada.</p>
+
+<table>
+<tr>
+<td>Permitir alterar PID/trim durante o voo</td>
+<td><input id="liveTuningEnabled" type="checkbox"></td>
+</tr>
+</table>
+<p class="hint">
+Vale só para este voo (some ao pousar/reativar, precisa marcar de novo
+no próximo). Com o avião em modo FLIGHT, os campos ficam liberados na
+página PID -- as mudanças valem na hora, por cima da correção que o
+PID já está fazendo.
+</p>
+
+<button id="startFlight" class="primary">Iniciar Voo</button>
+<button id="endFlight" class="danger" style="display:none;">Finalizar Voo</button>
+<button id="resetFlight" class="secondary" style="display:none;">Reativar Voo</button>
+</div>
+
+<div class="card">
+<h3>Sistema</h3>
+<button id="restartESP" class="danger">Reiniciar ESP32</button>
+</div>
+</section>
