@@ -1,118 +1,108 @@
-# Sistema de Controle e Telemetria para Asa Autônoma
+# Sistema de Controle e Telemetria para Aeromodelo Autônomo
 
-Este projeto é um **protótipo em desenvolvimento** de um sistema embarcado para uma **asa autônoma / aeromodelo experimental**, baseado em **ESP32-C3**.
+## Sobre o projeto
 
-O sistema realiza a aquisição de dados de sensores inerciais e ambientais, controla os servomotores das superfícies de comando e registra os dados de voo em um cartão microSD para análise posterior.
+Este projeto consiste no desenvolvimento de um **sistema embarcado de controle, navegação e telemetria para uma asa autônoma / aeromodelo planador experimental**.
+
+O sistema é baseado em um **ESP32-S3** e tem como finalidade realizar a aquisição de dados de voo, processamento de sensores, controle das superfícies móveis da aeronave e armazenamento das informações para análise posterior.
+
+O projeto encontra-se em fase de **protótipo e desenvolvimento**, sendo utilizado para testes de hardware, sensores, algoritmos de controle e integração de sistemas embarcados.
 
 ---
 
 ## Objetivo
 
-Desenvolver uma plataforma embarcada capaz de:
+Desenvolver uma plataforma experimental para estudo e implementação de um sistema de controle autônomo para aeronaves de pequeno porte, integrando:
 
-- Adquirir dados de sensores inerciais;
-- Medir pressão atmosférica e altitude;
-- Medir velocidade do ar através de tubo de Pitot;
-- Estimar a atitude da aeronave;
-- Controlar superfícies móveis da aeronave;
-- Registrar os dados de voo para análise posterior;
-- Servir como base para futuras versões do sistema de navegação e telemetria.
+* Sensoriamento inercial e ambiental;
+* Controle eletrônico das superfícies de comando;
+* Registro de dados de voo;
+* Desenvolvimento de firmware embarcado;
+* Testes e validação de sistemas aplicados à aviação experimental.
 
 ---
 
 ## Funcionalidades
 
-- Leitura de acelerômetro;
-- Leitura de giroscópio;
-- Leitura de magnetômetro;
-- Estimativa de Pitch, Roll e Yaw;
-- Medição de pressão atmosférica;
-- Cálculo de altitude utilizando BMP280;
-- Medição de velocidade do ar via tubo de Pitot;
-- Controle de servomotores;
-- Controle de:
-  - Flaperon(Flap + Aileron);
+* Leitura de sensores inerciais:
 
-- Registro automático dos dados em cartão microSD;
-- Estrutura preparada para expansão futura.
+  * Aceleração;
+  * Velocidade angular;
+  * Campo magnético;
+* Medição de altitude e pressão atmosférica utilizando BMP280;
+* Leitura de velocidade do ar através de tubo de Pitot;
+* Controle das superfícies de comando:
+
+  * Leme;
+  * Aileron;
+  * Profundor;
+* Controle de servomotores;
+* Registro de dados de voo em cartão SD;
+* Estrutura preparada para futuras expansões, como telemetria e algoritmos de controle autônomo.
 
 ---
 
-## Status do Projeto
+## Status do projeto
 
 🚧 **Protótipo em desenvolvimento**
 
-O hardware e o firmware encontram-se em constante evolução e podem sofrer alterações frequentes.
+O firmware e o hardware ainda estão em fase experimental. Alterações na arquitetura, sensores utilizados e funcionalidades podem ocorrer durante o desenvolvimento.
 
 ---
 
-## Hardware Utilizado
+## Tecnologias utilizadas
 
-- ESP32-C3;
-- GY-91 (MPU9250 + BMP280);
-- Tubo de Pitot;
-- Módulo para cartão microSD;
-- Servomotores.
+### Hardware
 
----
+* ESP32-S3 SuperMini;
+* ICM-20948 (IMU 9DOF);
+* BMP280 (pressão e altitude);
+* Tubo de Pitot;
+* Servomotores;
+* Cartão SD.
 
-## Tecnologias Utilizadas
+### Software
 
-- C / C++;
-- Arduino Framework;
-- Arduino IDE.
+* C / C++;
+* PlatformIO;
+* Arduino Framework.
 
 ---
 
 ## Dependências
 
-### Sensores
-
-- MPU9250_asukiaaa — v1.5.13
-- Adafruit BMP280 Library — v3.0.0
-
-### Armazenamento
-
-- SdFat — v2.3.0
-
-### Core Arduino
-
-- SPI
-- Wire
-
-### ESP32
-
-- esp_adc_cal
-- esp_task_wdt
+```ini
+lib_deps =
+	sparkfun/SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library@^1.3.2
+	adafruit/Adafruit ADS1X15@^2.6.2
+	adafruit/Adafruit BMP280 Library@^3.0.0
+	mikalhart/TinyGPSPlus@^1.1.0
+	greiman/SdFat@^2.3.1
+	jgromes/RadioLib@^7.7.1
+```
 
 ---
 
-## Ambiente de Desenvolvimento
+## Ambiente de desenvolvimento
 
-- Arduino IDE 2.3.7
-- Arduino Core for ESP32 v2.x
-- Placa alvo: ESP32-C3
+* IDE: PlatformIO;
+* Framework: Arduino;
+* Placa alvo: ESP32-S3 SuperMini.
 
 ---
 
-## Estrutura do Projeto
+## Estrutura do projeto
 
-```text
+```
 Firmware/
-└── Firmware.ino
+├── src/
+├── include/
+├── lib/
+└── platformio.ini
 ```
 
 ---
 
 ## Aplicação
 
-Projeto desenvolvido para fins educacionais e experimentais, integrando conhecimentos de:
-
-- Programação embarcada;
-- Eletrônica;
-- Sensores inerciais;
-- Aquisição de dados;
-- Sistemas aeronáuticos;
-- Controle de voo.
-
-O projeto serve como base para o desenvolvimento de futuras versões do sistema de controle, navegação e telemetria da aeronave.
+Projeto desenvolvido para fins educacionais e experimentais, integrando conhecimentos de **eletrônica, programação embarcada, sensores, controle e sistemas aeronáuticos** dentro de uma formação técnica em eletrônica.
