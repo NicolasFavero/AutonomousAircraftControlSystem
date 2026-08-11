@@ -97,6 +97,8 @@ label.inline{display:inline-flex;align-items:center;gap:8px;margin-left:18px;fon
 
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
 
+.hint{font-size:13px;color:var(--muted);line-height:1.5}
+
 .diagCell{display:flex;align-items:center;justify-content:flex-end;gap:10px}
 
 .led{display:inline-block;width:14px;height:14px;border-radius:50%;background:#8a8a8a}

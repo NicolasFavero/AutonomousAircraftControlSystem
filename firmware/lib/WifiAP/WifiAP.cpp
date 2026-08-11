@@ -1,5 +1,6 @@
 #include "WifiAP.h"
 #include "Web/Web.h"
+#include "ServomotorConfig.h"
 
 #include "SdLogger.h"
 /*
@@ -94,6 +95,9 @@ void WifiAP::setAttitude(const AttitudeData& data){
 }
 void WifiAP::setNavigation(const NavigationData& data){
     navigation = data;
+}
+void WifiAP::setGpsConfigStatus(const GpsConfigStatus& status){
+    gpsConfig = status;
 }
 void WifiAP::setSystemStatus(const SystemStatus& data){
     status = data;
@@ -214,6 +218,15 @@ void WifiAP::configureRoutes(){
             false
         );
     });
+    server.on("/page/servos", HTTP_GET, [this]()
+    {
+        sendGzip(
+            "text/html",
+            Web::Pages::SERVOS_PAGE_GZ,
+            Web::Pages::SERVOS_PAGE_GZ_LEN,
+            false
+        );
+    });
     server.on("/page/system", HTTP_GET, [this]()
     {
         sendGzip(
@@ -229,6 +242,15 @@ void WifiAP::configureRoutes(){
             "text/html",
             Web::Pages::LORA_PAGE_GZ,
             Web::Pages::LORA_PAGE_GZ_LEN,
+            false
+        );
+    });
+    server.on("/page/gps", HTTP_GET, [this]()
+    {
+        sendGzip(
+            "text/html",
+            Web::Pages::GPS_PAGE_GZ,
+            Web::Pages::GPS_PAGE_GZ_LEN,
             false
         );
     });
@@ -272,6 +294,10 @@ void WifiAP::configureRoutes(){
     {
         handleStatus();
     });
+    server.on("/api/gpsConfig", HTTP_GET, [this]()
+    {
+        handleGpsConfig();
+    });
     server.on("/api/offsets", HTTP_POST, [this]()
     {
         handleOffsets();
@@ -295,6 +321,10 @@ void WifiAP::configureRoutes(){
     server.on("/api/checklora", HTTP_POST, [this]()
     {
         handleCheckLora();
+    });
+    server.on("/api/checkgps", HTTP_POST, [this]()
+    {
+        handleCheckGps();
     });
     server.on("/api/start", HTTP_POST, [this]()
     {
@@ -374,6 +404,9 @@ void WifiAP::handleConfig(){
 void WifiAP::handleStatus(){
     sendJsonStatus();
 }
+void WifiAP::handleGpsConfig(){
+    sendJsonGpsConfig();
+}
 void WifiAP::handleOffsets(){
     if(systemConfig.flightMode != FlightMode::CONFIG)
     {
@@ -395,6 +428,10 @@ void WifiAP::handleOffsets(){
         offsets.yaw =
             server.arg("yaw").toFloat();
 
+    if(server.hasArg("pitotZero"))
+        offsets.pitotZeroVoltage =
+            server.arg("pitotZero").toFloat();
+
     pendingEvent =
         SystemEvent::OFFSET_CHANGED;
 
@@ -403,7 +440,15 @@ void WifiAP::handleOffsets(){
     );
 }
 void WifiAP::handlePid(){
-    if(systemConfig.flightMode != FlightMode::CONFIG)
+    // Fora do CONFIG, so' libera se "Permitir alterar PID/trim durante o
+    // voo" foi marcado ao iniciar o voo (liveTuningEnabled, ver
+    // handleStartFlight() abaixo) E o modo for FLIGHT de verdade --
+    // continua travado em COUNTDOWN/LANDED mesmo com a opcao marcada.
+    bool liveTuningActive =
+        systemConfig.liveTuningEnabled &&
+        systemConfig.flightMode == FlightMode::FLIGHT;
+
+    if(systemConfig.flightMode != FlightMode::CONFIG && !liveTuningActive)
     {
         sendJsonError(
             "Configuration Locked"
@@ -423,6 +468,10 @@ void WifiAP::handlePid(){
         pidConfig.pitch.kd =
             server.arg("pitchKd").toFloat();
 
+    if(server.hasArg("pitchIntegralLimit"))
+        pidConfig.pitch.integralLimit =
+            server.arg("pitchIntegralLimit").toFloat();
+
     if(server.hasArg("rollKp"))
         pidConfig.roll.kp =
             server.arg("rollKp").toFloat();
@@ -435,6 +484,10 @@ void WifiAP::handlePid(){
         pidConfig.roll.kd =
             server.arg("rollKd").toFloat();
 
+    if(server.hasArg("rollIntegralLimit"))
+        pidConfig.roll.integralLimit =
+            server.arg("rollIntegralLimit").toFloat();
+
     if(server.hasArg("yawKp"))
         pidConfig.yaw.kp =
             server.arg("yawKp").toFloat();
@@ -446,6 +499,26 @@ void WifiAP::handlePid(){
     if(server.hasArg("yawKd"))
         pidConfig.yaw.kd =
             server.arg("yawKd").toFloat();
+
+    if(server.hasArg("yawIntegralLimit"))
+        pidConfig.yaw.integralLimit =
+            server.arg("yawIntegralLimit").toFloat();
+
+    if(server.hasArg("flaperonTrim"))
+        pidConfig.flaperonTrim =
+            server.arg("flaperonTrim").toFloat();
+
+    if(server.hasArg("elevatorTrim"))
+        pidConfig.elevatorTrim =
+            server.arg("elevatorTrim").toFloat();
+
+    if(server.hasArg("invertFlaperonTrim"))
+        pidConfig.invertFlaperonTrim =
+            server.arg("invertFlaperonTrim") == "1";
+
+    if(server.hasArg("invertElevatorTrim"))
+        pidConfig.invertElevatorTrim =
+            server.arg("invertElevatorTrim") == "1";
 
     pendingEvent =
         SystemEvent::PID_CHANGED;
@@ -563,6 +636,21 @@ void WifiAP::handleCheckLora(){
         "LoRa Test Requested"
     );
 }
+void WifiAP::handleCheckGps(){
+    if(systemConfig.flightMode != FlightMode::CONFIG)
+    {
+        sendJsonError(
+            "Configuration Locked"
+        );
+        return;
+    }
+
+    pendingEvent = SystemEvent::CHECK_GPS;
+
+    sendJsonSuccess(
+        "GPS Diagnostic Requested"
+    );
+}
 void WifiAP::handleStartFlight(){
     if(systemConfig.flightMode != FlightMode::CONFIG)
     {
@@ -571,6 +659,12 @@ void WifiAP::handleStartFlight(){
         );
         return;
     }
+
+    // Sempre mandado pela pagina Voo (0 ou 1, nunca ausente) -- sem
+    // hasArg de proposito, decide de novo a cada voo (ver comentario em
+    // SystemConfig::liveTuningEnabled, DataTypes.h).
+    systemConfig.liveTuningEnabled =
+        server.arg("liveTuning") == "1";
 
     pendingEvent =
         SystemEvent::START_FLIGHT;
@@ -893,6 +987,23 @@ void WifiAP::sendJsonStatus(){
             break;
     }
 
+    // Leitura "facil" do flaperon pra' pagina Servos -- os angulos crus
+    // (servoLeftAileron/servoRightAileron) sao dificeis de ler de
+    // cabeca porque os neutros sao assimetricos (85/103, ver
+    // ServoConfig::BaseNeutral) e um sobe quando o outro numero desce.
+    // Essa conta desfaz essa assimetria: mostra o quanto os flaperons
+    // estao deslocados do neutro fisico, numa escala unica (0 =
+    // neutro, mesmo sinal/direcao fisica que PidConfig::flaperonTrim
+    // ja usa). Calculada dos 2 lados e tirada a media pra continuar
+    // fazendo sentido mesmo durante o FLIGHT, quando o PID mexe nos
+    // ailerons em direcoes opostas (banking) -- em CONFIG (so' trim,
+    // sem PID rodando) os 2 lados sempre batem exatamente.
+    float easyFlaperon =
+        (
+            (attitude.servoLeftAileron - ServoConfig::BaseNeutral::LEFT_AILERON) +
+            (ServoConfig::BaseNeutral::RIGHT_AILERON - attitude.servoRightAileron)
+        ) / 2.0f;
+
     snprintf(
         statusJson,
         sizeof(statusJson),
@@ -905,17 +1016,25 @@ void WifiAP::sendJsonStatus(){
         "\"roll\":%.2f,"
         "\"yaw\":%.2f,"
 
+        "\"servoElevator\":%.2f,"
+        "\"servoLeftAileron\":%.2f,"
+        "\"servoRightAileron\":%.2f,"
+        "\"easyFlaperon\":%.2f,"
+
         "\"pitchOffset\":%.2f,"
         "\"rollOffset\":%.2f,"
         "\"yawOffset\":%.2f,"
 
-        "\"lat\":%.7f,"
-        "\"lon\":%.7f,"
+        "\"lat\":%.9f,"
+        "\"lon\":%.9f,"
 
         "\"gpsAlt\":%.2f,"
         "\"baroAlt\":%.2f,"
 
         "\"battery\":%.2f,"
+
+        "\"airspeed\":%.2f,"
+        "\"pitotRawVoltage\":%.4f,"
 
         "\"wifiEnabled\":%s,"
 
@@ -947,6 +1066,11 @@ void WifiAP::sendJsonStatus(){
         attitude.roll,
         attitude.yaw,
 
+        attitude.servoElevator,
+        attitude.servoLeftAileron,
+        attitude.servoRightAileron,
+        easyFlaperon,
+
         offsets.pitch,
         offsets.roll,
         offsets.yaw,
@@ -958,6 +1082,9 @@ void WifiAP::sendJsonStatus(){
         navigation.baroAltitude,
 
         navigation.battery,
+
+        navigation.airspeed,
+        navigation.pitotRawVoltage,
 
         systemConfig.wifiEnabled ? "true" : "false",
 
@@ -1004,18 +1131,27 @@ void WifiAP::sendJsonConfig(){
         "\"pitchOffset\":%.2f,"
         "\"rollOffset\":%.2f,"
         "\"yawOffset\":%.2f,"
+        "\"pitotOffset\":%.4f,"
 
         "\"pitchKp\":%.4f,"
         "\"pitchKi\":%.4f,"
         "\"pitchKd\":%.4f,"
+        "\"pitchIntegralLimit\":%.2f,"
 
         "\"rollKp\":%.4f,"
         "\"rollKi\":%.4f,"
         "\"rollKd\":%.4f,"
+        "\"rollIntegralLimit\":%.2f,"
 
         "\"yawKp\":%.4f,"
         "\"yawKi\":%.4f,"
         "\"yawKd\":%.4f,"
+        "\"yawIntegralLimit\":%.2f,"
+
+        "\"flaperonTrim\":%.2f,"
+        "\"elevatorTrim\":%.2f,"
+        "\"invertFlaperonTrim\":%s,"
+        "\"invertElevatorTrim\":%s,"
 
         "\"batteryLimit\":%.2f,"
         "\"telemetryMs\":%u,"
@@ -1036,18 +1172,27 @@ void WifiAP::sendJsonConfig(){
         offsets.pitch,
         offsets.roll,
         offsets.yaw,
+        offsets.pitotZeroVoltage,
 
         pidConfig.pitch.kp,
         pidConfig.pitch.ki,
         pidConfig.pitch.kd,
+        pidConfig.pitch.integralLimit,
 
         pidConfig.roll.kp,
         pidConfig.roll.ki,
         pidConfig.roll.kd,
+        pidConfig.roll.integralLimit,
 
         pidConfig.yaw.kp,
         pidConfig.yaw.ki,
         pidConfig.yaw.kd,
+        pidConfig.yaw.integralLimit,
+
+        pidConfig.flaperonTrim,
+        pidConfig.elevatorTrim,
+        pidConfig.invertFlaperonTrim ? "true" : "false",
+        pidConfig.invertElevatorTrim ? "true" : "false",
 
         systemConfig.batteryLimit,
         systemConfig.telemetryPeriodMs,
@@ -1062,6 +1207,38 @@ void WifiAP::sendJsonConfig(){
         systemConfig.lora.power,
         systemConfig.lora.syncWord,
         systemConfig.lora.preambleLength
+    );
+
+    server.send(
+        200,
+        "application/json",
+        statusJson
+    );
+}
+void WifiAP::sendJsonGpsConfig(){
+    // gpsConfig.configJson ja e' um objeto JSON valido (montado pelo
+    // ApplyGpsConfig dentro de GPS::begin()) -- entra direto via %s,
+    // SEM aspas ao redor, virando um valor aninhado de verdade em vez
+    // de uma string escapada.
+    snprintf(
+        statusJson,
+        sizeof(statusJson),
+
+        "{"
+        "\"ok\":%s,"
+        "\"detectedBaud\":%lu,"
+        "\"finalBaud\":%lu,"
+        "\"confirmed\":%u,"
+        "\"total\":%u,"
+        "\"config\":%s"
+        "}",
+
+        gpsConfig.ok ? "true" : "false",
+        (unsigned long)gpsConfig.detectedBaud,
+        (unsigned long)gpsConfig.finalBaud,
+        gpsConfig.confirmedCount,
+        gpsConfig.totalCount,
+        gpsConfig.configJson
     );
 
     server.send(

@@ -40,7 +40,6 @@ class PID {
         struct ServoParamters{
 
             float setAngle = 90.0f;
-            float safeAngle = 90.0f;
             float targetAngle = 90.0f;
             float neutralAngle = 90.0f;
         };
@@ -60,6 +59,17 @@ class PID {
         // Histórico de tempo
         uint32_t lastTime = 0;
 
-        void computePID(PID_variables& pid, ServoParamters& servo, float currentAngle, float dt, float integralLimit, float maxMovement, int minLimit, int maxLimit, bool invert = false);
+        // Separado de computePID() em dois passos -- ver comentario em
+        // setAngles() (PID.cpp) sobre o roll ser compartilhado por 2
+        // servos (leftAileron/rightAileron) e precisar rodar so' UMA vez
+        // por ciclo, nao uma vez por servo.
+        void updatePidVariables(PID_variables& pid, float currentAngle, float dt);
+
+        // Sem limitador de taxa (slew rate) -- tirado a pedido, o servo
+        // vai direto pro angulo alvo do PID, sem rampa/atraso nenhum.
+        // minLimit/maxLimit continuam (fim de curso mecanico, ver
+        // ServoConfig::SafeRange) -- isso e' limite de POSICAO, nao de
+        // velocidade, protege o servo de forcar contra o batente.
+        void applyServoOutput(ServoParamters& servo, float output, float minLimit, float maxLimit, bool invert = false);
 
 };

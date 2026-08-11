@@ -40,8 +40,10 @@ const char* Telemetry::buildCsv(){
         "%.2f,"
         "%.2f,"
         "%.2f,"
-        "%.6f,"
-        "%.6f,"
+        "%.9f,"
+        "%.9f,"
+        "%.2f,"
+        "%.2f,"
         "%.2f,"
         "%.2f",
 
@@ -92,7 +94,10 @@ const char* Telemetry::buildCsv(){
 
         data.course,
 
-        data.battery
+        data.battery,
+
+        data.airspeed,
+        data.gpsSpeed
     );
 
     return csv;
@@ -128,7 +133,9 @@ const char* Telemetry::getCsvHeader() const{
         "lat,"
         "lon,"
         "course,"
-        "battery";
+        "battery,"
+        "airspeed,"
+        "gpsSpeed";
 }
 const char* Telemetry::buildLoraPacket(bool reduced){
 
@@ -144,7 +151,8 @@ const char* Telemetry::buildLoraPacket(bool reduced){
             "\"lat\":%.6f,"
             "\"lon\":%.6f,"
             "\"c\":%.2f,"
-            "\"bat\":%.2f}",
+            "\"bat\":%.2f,"
+            "\"pVel\":%.1f}",
 
             stateToString(data.state),
 
@@ -157,7 +165,9 @@ const char* Telemetry::buildLoraPacket(bool reduced){
 
             data.course,
 
-            data.battery
+            data.battery,
+
+            data.airspeed
         );
 
         return json;
@@ -167,22 +177,24 @@ const char* Telemetry::buildLoraPacket(bool reduced){
         json,
         sizeof(json),
 
-        "{\"state\":\"%s\","
-        "\"gpsOk\":%d,"
-        "\"imuOk\":%d,"
+        "{\"st\":\"%s\","
+        "\"gOk\":%d,"
+        "\"iOk\":%d,"
         "\"pitch\":%.2f,"
         "\"roll\":%.2f,"
         "\"yaw\":%.2f,"
-        "\"bmpAlt\":%.2f,"
-        "\"gpsAlt\":%.2f,"
-        "\"lat\":%.6f,"
-        "\"lon\":%.6f,"
-        "\"course\":%.2f,"
+        "\"bAlt\":%.2f,"
+        "\"gAlt\":%.2f,"
+        "\"lat\":%.5f,"
+        "\"lon\":%.5f,"
+        "\"crs\":%.2f,"
         "\"temp\":%.2f,"
-        "\"date\":\"%02d/%02d/%02d\","
-        "\"time\":\"%02d:%02d:%02d\","
-        "\"sats\":%d,"
-        "\"bat\":%.2f}",
+        "\"d\":\"%02d/%02d/%02d\","
+        "\"t\":\"%02d:%02d:%02d\","
+        "\"sat\":%d,"
+        "\"bat\":%.2f,"
+        "\"pVel\":%.1f,"
+        "\"gVel\":%.1f}",
 
         stateToString(data.state),
 
@@ -213,7 +225,10 @@ const char* Telemetry::buildLoraPacket(bool reduced){
 
         data.satellites,
 
-        data.battery
+        data.battery,
+
+        data.airspeed,
+        data.gpsSpeed
     );
 
     return json;

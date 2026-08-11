@@ -157,8 +157,10 @@ def main():
         "status.html": ("StatusPage.h", "STATUS_PAGE_GZ"),
         "offsets.html": ("OffsetPage.h", "OFFSET_PAGE_GZ"),
         "pid.html": ("PidPage.h", "PID_PAGE_GZ"),
+        "servos.html": ("ServosPage.h", "SERVOS_PAGE_GZ"),
         "system.html": ("SystemPage.h", "SYSTEM_PAGE_GZ"),
         "lora.html": ("LoraPage.h", "LORA_PAGE_GZ"),
+        "gps.html": ("GpsPage.h", "GPS_PAGE_GZ"),
         "flight.html": ("FlightPage.h", "FLIGHT_PAGE_GZ"),
         "logs.html":("LogsPage.h", "LOG_PAGE_GZ"),
         "console.html":("ConsolePage.h", "CONSOLE_PAGE_GZ")

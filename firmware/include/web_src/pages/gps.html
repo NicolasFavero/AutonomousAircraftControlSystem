@@ -1,0 +1,44 @@
+<section>
+<h2>GPS</h2>
+
+<div class="grid">
+
+<div class="card">
+<h3>Fix Atual</h3>
+<table>
+<tr><td>Status</td><td><span class="led" id="gpsLed"></span></td></tr>
+<tr><td>Latitude</td><td id="latitude">-</td></tr>
+<tr><td>Longitude</td><td id="longitude">-</td></tr>
+<tr><td>Altitude GPS</td><td id="gpsAltitude">-</td></tr>
+<tr><td>Satélites</td><td id="satellites">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Config Aplicada no Boot</h3>
+
+<div class="actions">
+<button class="secondary" id="checkGps">Forçar Diagnóstico</button>
+</div>
+
+<table>
+<tr><td>Status</td><td><span class="led" id="gpsConfigLed"></span></td></tr>
+<tr><td>Comandos confirmados</td><td id="gpsConfigConfirmed">-</td></tr>
+<tr><td>Baud detectado</td><td id="gpsConfigDetectedBaud">-</td></tr>
+<tr><td>Baud final</td><td id="gpsConfigFinalBaud">-</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Leitura Bruta (UBX)</h3>
+<p class="hint">
+Config lida de volta do modulo (CFG-PRT/RATE/NAV5/GNSS) apos aplicar
+gpsSettings.h -- confirma o que o GPS realmente ficou, nao so o que foi
+mandado.
+</p>
+<pre class="console" id="gpsConfigJson">-</pre>
+</div>
+
+</div>
+
+</section>

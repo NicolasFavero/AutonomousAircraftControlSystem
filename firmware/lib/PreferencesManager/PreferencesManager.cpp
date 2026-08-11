@@ -11,6 +11,7 @@ namespace PreferencesKeys
     constexpr char PITCH[] = "pitch";
     constexpr char ROLL[]  = "roll";
     constexpr char YAW[]   = "yaw";
+    constexpr char PITOT_ZERO[] = "pitotZero";
     /*
     ==========================================================
                             PID
@@ -19,14 +20,22 @@ namespace PreferencesKeys
     constexpr char PID_PITCH_KP[] = "pid_p_kp";
     constexpr char PID_PITCH_KI[] = "pid_p_ki";
     constexpr char PID_PITCH_KD[] = "pid_p_kd";
+    constexpr char PID_PITCH_IL[] = "pid_p_il";
 
     constexpr char PID_ROLL_KP[] = "pid_r_kp";
     constexpr char PID_ROLL_KI[] = "pid_r_ki";
     constexpr char PID_ROLL_KD[] = "pid_r_kd";
+    constexpr char PID_ROLL_IL[] = "pid_r_il";
 
     constexpr char PID_YAW_KP[] = "pid_y_kp";
     constexpr char PID_YAW_KI[] = "pid_y_ki";
     constexpr char PID_YAW_KD[] = "pid_y_kd";
+    constexpr char PID_YAW_IL[] = "pid_y_il";
+
+    constexpr char FLAPERON_TRIM[] = "flapTrim";
+    constexpr char ELEVATOR_TRIM[] = "elevTrim";
+    constexpr char INVERT_FLAPERON[] = "invFlapTrim";
+    constexpr char INVERT_ELEVATOR[] = "invElevTrim";
     /*
     ==========================================================
                             System
@@ -147,6 +156,12 @@ bool PreferencesManager::loadOffsets(ImuOffsets& offsets){
             0.0f
         );
 
+    offsets.pitotZeroVoltage =
+        nvs.getFloat(
+            PreferencesKeys::PITOT_ZERO,
+            1.8385f
+        );
+
     nvs.end();
 
     return true;
@@ -161,14 +176,23 @@ bool PreferencesManager::loadPid(PidConfig& config){
     config.pitch.kp = nvs.getFloat(PreferencesKeys::PID_PITCH_KP, 0.0f);
     config.pitch.ki = nvs.getFloat(PreferencesKeys::PID_PITCH_KI, 0.0f);
     config.pitch.kd = nvs.getFloat(PreferencesKeys::PID_PITCH_KD, 0.0f);
+    config.pitch.integralLimit = nvs.getFloat(PreferencesKeys::PID_PITCH_IL, 0.0f);
 
     config.roll.kp = nvs.getFloat(PreferencesKeys::PID_ROLL_KP, 0.0f);
     config.roll.ki = nvs.getFloat(PreferencesKeys::PID_ROLL_KI, 0.0f);
     config.roll.kd = nvs.getFloat(PreferencesKeys::PID_ROLL_KD, 0.0f);
+    config.roll.integralLimit = nvs.getFloat(PreferencesKeys::PID_ROLL_IL, 0.0f);
 
     config.yaw.kp = nvs.getFloat(PreferencesKeys::PID_YAW_KP, 0.0f);
     config.yaw.ki = nvs.getFloat(PreferencesKeys::PID_YAW_KI, 0.0f);
     config.yaw.kd = nvs.getFloat(PreferencesKeys::PID_YAW_KD, 0.0f);
+    config.yaw.integralLimit = nvs.getFloat(PreferencesKeys::PID_YAW_IL, 0.0f);
+
+    config.flaperonTrim = nvs.getFloat(PreferencesKeys::FLAPERON_TRIM, 0.0f);
+    config.elevatorTrim = nvs.getFloat(PreferencesKeys::ELEVATOR_TRIM, 0.0f);
+
+    config.invertFlaperonTrim = nvs.getBool(PreferencesKeys::INVERT_FLAPERON, false);
+    config.invertElevatorTrim = nvs.getBool(PreferencesKeys::INVERT_ELEVATOR, false);
 
     nvs.end();
 
@@ -315,6 +339,13 @@ bool PreferencesManager::saveOffsets(const ImuOffsets& offsets){
         ) > 0
     );
 
+    ok &= (
+        nvs.putFloat(
+            PreferencesKeys::PITOT_ZERO,
+            offsets.pitotZeroVoltage
+        ) > 0
+    );
+
     nvs.end();
 
     return ok;
@@ -331,14 +362,23 @@ bool PreferencesManager::savePid(const PidConfig& config){
     ok &= (nvs.putFloat(PreferencesKeys::PID_PITCH_KP, config.pitch.kp) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_PITCH_KI, config.pitch.ki) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_PITCH_KD, config.pitch.kd) > 0);
+    ok &= (nvs.putFloat(PreferencesKeys::PID_PITCH_IL, config.pitch.integralLimit) > 0);
 
     ok &= (nvs.putFloat(PreferencesKeys::PID_ROLL_KP, config.roll.kp) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_ROLL_KI, config.roll.ki) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_ROLL_KD, config.roll.kd) > 0);
+    ok &= (nvs.putFloat(PreferencesKeys::PID_ROLL_IL, config.roll.integralLimit) > 0);
 
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KP, config.yaw.kp) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KI, config.yaw.ki) > 0);
     ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_KD, config.yaw.kd) > 0);
+    ok &= (nvs.putFloat(PreferencesKeys::PID_YAW_IL, config.yaw.integralLimit) > 0);
+
+    ok &= (nvs.putFloat(PreferencesKeys::FLAPERON_TRIM, config.flaperonTrim) > 0);
+    ok &= (nvs.putFloat(PreferencesKeys::ELEVATOR_TRIM, config.elevatorTrim) > 0);
+
+    ok &= (nvs.putBool(PreferencesKeys::INVERT_FLAPERON, config.invertFlaperonTrim) > 0);
+    ok &= (nvs.putBool(PreferencesKeys::INVERT_ELEVATOR, config.invertElevatorTrim) > 0);
 
     nvs.end();
 
@@ -489,6 +529,14 @@ void PreferencesManager::printAll(Stream& stream){
         nvs.getFloat(
             PreferencesKeys::YAW,
             0.0f
+        )
+    );
+
+    stream.print("Pitot Zero (V): ");
+    stream.println(
+        nvs.getFloat(
+            PreferencesKeys::PITOT_ZERO,
+            1.8385f
         )
     );
 

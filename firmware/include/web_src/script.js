@@ -60,6 +60,24 @@ async function testLora(){
 
     }
 }
+async function checkGps(){
+
+    try{
+
+        const json = await POST("/api/checkgps");
+
+        alertSuccess(json);
+
+        await loadStatus();
+        await loadGpsConfig();
+
+    }
+    catch(error){
+
+        alertError(error);
+
+    }
+}
 /* ---------- DOM helpers ---------- */
 
 function text(id, value){
@@ -323,6 +341,11 @@ function initializePage(page){
         () => tareAxis("yaw")
     );
 
+    $("zeroPitot")?.addEventListener(
+        "click",
+        tarePitot
+    );
+
     $("saveOffsets")?.addEventListener(
         "click",
         async () => {
@@ -367,6 +390,32 @@ function initializePage(page){
     $("saveLora")?.addEventListener(
         "click",
         () => save("lora")
+    );
+
+    break;
+
+    case "gps":
+
+    loadStatus();
+    startStatus();
+    loadGpsConfig();
+
+    $("checkGps")?.addEventListener(
+        "click",
+        checkGps
+    );
+
+    break;
+
+    case "servos":
+
+    loadConfig();
+    loadStatus();
+    startStatus();
+
+    $("applyServoTrim")?.addEventListener(
+        "click",
+        () => save("servos")
     );
 
     break;
@@ -434,6 +483,21 @@ async function tareAxis(axis){
     }
     finally{
         tareBusy = false;
+    }
+}
+
+// Diferente de tareAxis(): o pitot nao tem "offset ja aplicado +
+// leitura corrigida" pra somar -- pitotRawVoltage do /api/status ja
+// e' a tensao crua, direto. Zerar e' so' copiar esse valor pro campo
+// de offset (o firmware passa a subtrair essa tensao como zero).
+async function tarePitot(){
+    try{
+        const data = await GET_JSON("/api/status");
+
+        valueField("pitotOffset", Number(data.pitotRawVoltage ?? 0).toFixed(4));
+    }
+    catch(error){
+        alertError(error);
     }
 }
 /* ---------- Console ---------- */
@@ -526,6 +590,25 @@ function initializeLiveStatus(){
   $("testLora")?.addEventListener("click", testLora);
 }
 
+// Buscado uma vez (nao no timer de 500ms de loadStatus) -- a config
+// UBX so muda quando alguem clica em "Forcar Diagnostico" (checkGps
+// abaixo ja rechama isso depois), nao a cada ciclo.
+async function loadGpsConfig(){
+  try{
+    const data = await GET_JSON("/api/gpsConfig");
+
+    led("gpsConfigLed", data.ok);
+
+    text("gpsConfigConfirmed", data.detectedBaud ? `${data.confirmed}/${data.total}` : "-");
+    text("gpsConfigDetectedBaud", data.detectedBaud || "-");
+    text("gpsConfigFinalBaud", data.finalBaud || "-");
+    text("gpsConfigJson", JSON.stringify(data.config ?? {}, null, 2));
+  }
+  catch(error){
+    console.error(error);
+  }
+}
+
 function startStatus(){
   stopStatus();
   statusTimer = setInterval(loadStatus, 500);
@@ -550,11 +633,19 @@ const STATUS_TEXT_FIELDS = {
   pitch: d => num(d.pitch),
   roll: d => num(d.roll),
   yaw: d => num(d.yaw),
-  latitude: d => num(d.lat, 7),
-  longitude: d => num(d.lon, 7),
+  latitude: d => num(d.lat, 9),
+  longitude: d => num(d.lon, 9),
   gpsAltitude: d => num(d.gpsAlt),
   baroAltitude: d => num(d.baroAlt),
   battery: d => num(d.battery),
+  airspeed: d => num(d.airspeed),
+  servoElevator: d => num(d.servoElevator),
+  servoLeftAileron: d => num(d.servoLeftAileron),
+  servoRightAileron: d => num(d.servoRightAileron),
+  // Sinal explicito (+/-) de proposito -- e' o ponto principal dessa
+  // leitura "facil": positivo = sobe, negativo = desce, sem precisar
+  // fazer conta de cabeca com os 2 angulos crus assimetricos.
+  easyFlaperon: d => (d.easyFlaperon >= 0 ? "+" : "") + num(d.easyFlaperon),
   satellites: d => d.gpsSat,
   telemetryPeriod: d => d.telemetryMs,
   batteryLimit: d => num(d.batteryLimit),
@@ -584,6 +675,7 @@ function fillStatus(data){
   text("pitchNow", num(data.pitch));
   text("rollNow", num(data.roll));
   text("yawNow", num(data.yaw));
+  text("pitotRawNow", num(data.pitotRawVoltage, 4));
   lastStatus = data;
 }
 
@@ -593,18 +685,25 @@ const CONFIG_FIELDS = {
   pitchOffset: "pitchOffset",
   rollOffset: "rollOffset",
   yawOffset: "yawOffset",
+  pitotOffset: "pitotOffset",
 
   pitchKp: "pitchKp",
   pitchKi: "pitchKi",
   pitchKd: "pitchKd",
+  pitchIntegralLimit: "pitchIntegralLimit",
 
   rollKp: "rollKp",
   rollKi: "rollKi",
   rollKd: "rollKd",
+  rollIntegralLimit: "rollIntegralLimit",
 
   yawKp: "yawKp",
   yawKi: "yawKi",
   yawKd: "yawKd",
+  yawIntegralLimit: "yawIntegralLimit",
+
+  flaperonTrim: "flaperonTrim",
+  elevatorTrim: "elevatorTrim",
 
   batteryLimit: "batteryLimit",
 
@@ -638,6 +737,9 @@ function fillConfig(cfg){
         cfg.preFlightTelemetryEnabled
     );
 
+    checked("invertFlaperon", cfg.invertFlaperonTrim);
+    checked("invertElevator", cfg.invertElevatorTrim);
+
     valueField(
         "syncWord",
         Number(cfg.syncWord).toString(16).toUpperCase()
@@ -647,14 +749,34 @@ function fillConfig(cfg){
 const SAVE_FORMS = {
   offset: {
     url: "/api/offsets",
-    fields: { pitch:"pitchOffset", roll:"rollOffset", yaw:"yawOffset" },
+    fields: { pitch:"pitchOffset", roll:"rollOffset", yaw:"yawOffset", pitotZero:"pitotOffset" },
   },
   pid: {
     url: "/api/pid",
     fields: {
       pitchKp:"pitchKp", pitchKi:"pitchKi", pitchKd:"pitchKd",
+      pitchIntegralLimit:"pitchIntegralLimit",
       rollKp:"rollKp", rollKi:"rollKi", rollKd:"rollKd",
+      rollIntegralLimit:"rollIntegralLimit",
       yawKp:"yawKp", yawKi:"yawKi", yawKd:"yawKd",
+      yawIntegralLimit:"yawIntegralLimit",
+      flaperonTrim:"flaperonTrim", elevatorTrim:"elevatorTrim",
+    },
+    checks: {
+      invertFlaperonTrim: "invertFlaperon",
+      invertElevatorTrim: "invertElevator",
+    },
+  },
+  servos: {
+    // So manda os 2 campos de trim (nunca os ganhos do PID) -- essa
+    // pagina nao tem os inputs de Kp/Ki/Kd, e save() sempre manda TODOS
+    // os campos de form.fields (mesmo vazio, se o elemento nao existir
+    // na pagina atual). Reusar o form "pid" aqui zeraria os ganhos.
+    url: "/api/pid",
+    fields: { flaperonTrim:"flaperonTrim", elevatorTrim:"elevatorTrim" },
+    checks: {
+      invertFlaperonTrim: "invertFlaperon",
+      invertElevatorTrim: "invertElevator",
     },
   },
   system: {
@@ -713,9 +835,57 @@ async function save(type){
     }
     catch(error){
 
+        // PID/trim (paginas "pid" e "servos") pode estar bloqueado por
+        // flightMode != CONFIG -- antes isso so' aparecia como "Erro de
+        // comunicação" generico, dando a impressão de um bug. Troca por
+        // uma pergunta/aviso que realmente explica o que fazer.
+        if(error?.message === "Configuration Locked" && (type === "pid" || type === "servos")){
+            await handleConfigLocked(() => save(type));
+            return;
+        }
+
         alertError(error);
 
     }
+}
+
+// Pergunta/avisa o que fazer quando um save de PID/trim volta
+// bloqueado. Em LANDED, "Reativar Voo" (volta pra CONFIG) resolve na
+// hora -- pergunta e, se confirmado, reativa e tenta salvar de novo
+// sozinho. Em FLIGHT/COUNTDOWN sem live tuning ativado, reativar não é
+// possível (só a partir de LANDED), então só explica o motivo.
+async function handleConfigLocked(retry){
+
+    const mode = lastStatus?.flightMode;
+
+    if(mode === "LANDED"){
+
+        const yes = await customConfirm(
+            "Essa alteração está bloqueada porque o voo já foi finalizado.\n\nDeseja reativar o voo agora para salvar?"
+        );
+
+        if(!yes) return;
+
+        try{
+            alertSuccess(await POST("/api/reset"));
+            await loadStatus();
+            await retry();
+        }
+        catch(error){
+            alertError(error);
+        }
+
+        return;
+    }
+
+    if(mode === "FLIGHT" || mode === "COUNTDOWN"){
+        await customAlert(
+            "Essa alteração está bloqueada: o voo está em andamento e \"Permitir alterar PID/trim durante o voo\" não foi ativado ao iniciar.\n\nFinalize o voo para poder editar, ou ative essa opção na próxima decolagem."
+        );
+        return;
+    }
+
+    await customAlert("Configuração bloqueada no momento.");
 }
 /* ---------- Flight control ---------- */
 
@@ -835,11 +1005,21 @@ async function startFlight(){
             return;
     }
 
+    const liveTuning = checked("liveTuningEnabled");
+
+    if(liveTuning && !(await customConfirm(
+        "\"Permitir alterar PID/trim durante o voo\" está marcado.\n\nAlterar ganhos ou trim com o avião em voo pode causar instabilidade repentina. Tem certeza que quer permitir isso?"
+    )))
+        return;
+
     if(!(await customConfirm("Iniciar voo? Tem certeza?")))
         return;
 
+    const data = new URLSearchParams();
+    data.append("liveTuning", liveTuning ? 1 : 0);
+
     try{
-        alertSuccess(await POST("/api/start"));
+        alertSuccess(await POST("/api/start", data));
         await loadStatus();
     }
     catch(error){

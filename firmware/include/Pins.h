@@ -17,7 +17,8 @@ namespace Pins{
     inline constexpr uint8_t SD_CS = 1;
 
     // GPS
-    inline constexpr uint8_t GPS_TX = 13;
+    inline constexpr uint8_t GPS_TX = 13; // TX do GPS -> RX do ESP32 (leitura NMEA/UBX)
+    inline constexpr uint8_t GPS_RX = 43; // RX do GPS <- TX do ESP32 (necessario pra ApplyGpsConfig mandar comandos UBX -- antes so a leitura existia). Livre pra uso: ARDUINO_USB_CDC_ON_BOOT=1 tira o Serial da UART0 fixa (pinos 43/44), sobra pra GPIO.
 
     // LoRa
     inline constexpr uint8_t LORA_CS = 4;

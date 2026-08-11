@@ -3,6 +3,13 @@
 
 <p>Yaw ainda não é usado no controle de voo, mas já fica salvo para quando for implementado.</p>
 
+<p class="hint">
+Limite integral: teto (em ambos os sentidos) do acúmulo do termo
+integral de cada eixo -- evita que o Ki continue somando erro sem
+parar quando o servo já está no limite físico (anti-windup). 0 = Ki
+sem efeito nenhum (integral sempre travado em zero).
+</p>
+
 <div class="grid">
 
 <div class="card">
@@ -11,6 +18,7 @@
 <tr><td>Kp</td><td><input id="pitchKp" type="number" step="0.001"></td></tr>
 <tr><td>Ki</td><td><input id="pitchKi" type="number" step="0.001"></td></tr>
 <tr><td>Kd</td><td><input id="pitchKd" type="number" step="0.001"></td></tr>
+<tr><td>Limite integral</td><td><input id="pitchIntegralLimit" type="number" step="0.1"></td></tr>
 </table>
 </div>
 
@@ -20,6 +28,7 @@
 <tr><td>Kp</td><td><input id="rollKp" type="number" step="0.001"></td></tr>
 <tr><td>Ki</td><td><input id="rollKi" type="number" step="0.001"></td></tr>
 <tr><td>Kd</td><td><input id="rollKd" type="number" step="0.001"></td></tr>
+<tr><td>Limite integral</td><td><input id="rollIntegralLimit" type="number" step="0.1"></td></tr>
 </table>
 </div>
 
@@ -29,6 +38,23 @@
 <tr><td>Kp</td><td><input id="yawKp" type="number" step="0.001"></td></tr>
 <tr><td>Ki</td><td><input id="yawKi" type="number" step="0.001"></td></tr>
 <tr><td>Kd</td><td><input id="yawKd" type="number" step="0.001"></td></tr>
+<tr><td>Limite integral</td><td><input id="yawIntegralLimit" type="number" step="0.1"></td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Trim (Neutro dos Servos)</h3>
+<p class="hint">
+Mesmo trim da página Servos -- soma/subtrai no neutro que o PID usa
+como base. Ver a página Servos para aplicar e travar os servos
+imediatamente nessa posição. Fim de curso dos flaperons não é mais
+simétrico: até 85° sem "Inverter", até 32° com "Inverter" marcado.
+</p>
+<table>
+<tr><td>Flaperons (°)</td><td><input id="flaperonTrim" type="number" step="0.5" min="0"></td></tr>
+<tr><td>Inverter flaperons</td><td><input id="invertFlaperon" type="checkbox"></td></tr>
+<tr><td>Profundor (°)</td><td><input id="elevatorTrim" type="number" step="0.5" min="0" max="70"></td></tr>
+<tr><td>Inverter profundor</td><td><input id="invertElevator" type="checkbox"></td></tr>
 </table>
 </div>
 

@@ -42,6 +42,9 @@ struct NavigationData{
     float baroAltitude = 0.0f;
     float temperature = 0.0f;
     float battery = 0.0f;
+
+    float airspeed = 0.0f;        // m/s, com sinal (Pitot -- ver lib/Pitot)
+    float pitotRawVoltage = 0.0f; // tensao ADS crua no canal do pitot (SEM zero/filtro) -- so pra diagnostico/tara na pagina web
 };
 
 
@@ -54,6 +57,13 @@ struct ImuOffsets
     float pitch = 0.0f;
     float roll = 0.0f;
     float yaw = 0.0f;
+
+    // Nao e' da IMU, e' o zero do Pitot (MPXV7002DP) -- mora aqui
+    // mesmo assim pra reusar o mesmo fluxo de tara/salvar/Preferences
+    // que pitch/roll/yaw ja tem (mesmo padrao de SystemConfig.lora
+    // ja fazer algo parecido). 1.8385V e' o zero de fabrica (sem
+    // media estatica no boot -- ver comentario em Pitot::update()).
+    float pitotZeroVoltage = 1.8385f;
 };
 
 /*==========================================================
@@ -65,6 +75,14 @@ struct PidGains
     float kp = 0.0f;
     float ki = 0.0f;
     float kd = 0.0f;
+
+    // Teto do anti-windup (PID::PID_variables::integral fica preso em
+    // [-integralLimit, +integralLimit]). Default 0.0f == integral sempre
+    // travado em 0 (Ki sem efeito nenhum) ate' ser configurado pela
+    // pagina PID -- mesmo comportamento "inerte" de antes desse campo
+    // existir, so' que agora configuravel em vez de permanentemente
+    // zerado (ver PID::updatePidVariables em lib/PID/PID.cpp).
+    float integralLimit = 0.0f;
 };
 
 struct PidConfig
@@ -72,6 +90,24 @@ struct PidConfig
     PidGains pitch;
     PidGains roll;
     PidGains yaw; // Ainda nao usado no controle, mas ja fica pronto.
+
+    // Trim simetrico por cima do neutro FISICO de cada servo (ver
+    // ServoConfig::BaseNeutral) -- e' o que a pagina Servos/PID
+    // realmente edita, nunca os graus base direto. flaperonTrim>0
+    // soma no neutro do aileron esquerdo e SUBTRAI do direito (ver
+    // comentario em main.cpp sobre qual direcao fisica isso vira --
+    // confirme no teste com os servos de verdade, e' so trocar o sinal
+    // aqui se estiver invertido).
+    float flaperonTrim = 0.0f;
+    float elevatorTrim = 0.0f;
+
+    // Inverte o sinal do trim antes de aplicar (LEFT_AILERON + trim /
+    // RIGHT_AILERON - trim, ver main.cpp::syncPidNeutralAngles()).
+    // Existe porque o input numerico do navegador no celular nao tem
+    // tecla de "-" -- sem isso, corrigir a direcao do trim exigiria
+    // digitar um valor negativo, o que nao da' pra fazer no celular.
+    bool invertFlaperonTrim = false;
+    bool invertElevatorTrim = false;
 };
 
 struct LoraConfig
@@ -111,6 +147,28 @@ enum class GpsStatus : uint8_t
     GOOD_FIX         = 3    // Verde
 };
 
+// Resultado da aplicacao da config UBX no boot (ApplyGpsConfig, dentro
+// de GPS::begin()) -- diferente de GpsStatus acima, que e' o fix ao
+// vivo (muda o tempo todo). Isso aqui e' fixo depois do boot, so serve
+// pra diagnostico: a config realmente foi aplicada no modulo, ou o GPS
+// nem respondeu?
+struct GpsConfigStatus
+{
+    bool ok = false; // true so se TODOS os comandos de gpsSettings.h foram confirmados por ACK
+
+    uint32_t detectedBaud = 0; // baud em que o GPS respondeu ANTES de aplicar a config (0 = nenhum candidato respondeu)
+    uint32_t finalBaud = 0;    // baud em que a UART fica depois de aplicar (pode ter mudado por um comando de troca de baudrate)
+
+    uint8_t confirmedCount = 0;
+    uint8_t totalCount = 0;
+
+    // Leitura de volta (CFG-PRT/RATE/NAV5/GNSS) -- ja vem como um
+    // objeto JSON valido (ex.: {"baud":115200,"rateMs":140,...}), pra
+    // poder ser embutido direto (sem escapar aspas) dentro do JSON que
+    // o WifiAP manda pro navegador.
+    char configJson[320] = "{}";
+};
+
 enum class SystemEvent : uint8_t{
     NONE,
 
@@ -121,6 +179,7 @@ enum class SystemEvent : uint8_t{
 
     CHECK_SD,
     CHECK_LORA,
+    CHECK_GPS,
 
     START_FLIGHT,
     END_FLIGHT,
@@ -150,6 +209,15 @@ struct SystemConfig
     bool preFlightTelemetryEnabled = false;
 
     FlightMode flightMode = FlightMode::CONFIG;
+
+    // Decidido na hora de "Iniciar Voo" (checkbox na pagina Voo, ver
+    // handleStartFlight() em WifiAP.cpp) -- default desligado (a
+    // configuracao so' pode ser editada em CONFIG, como sempre foi).
+    // Ligado, libera PID/trim pra edicao tambem durante o FLIGHT (ver
+    // handlePid() e o bloco "newPidAvailable" em taskControl()).
+    // Proposital NAO ter chave nas Preferences: cada voo exige marcar
+    // de novo, nunca herda do voo anterior.
+    bool liveTuningEnabled = false;
 
     LoraConfig lora;
 };
@@ -205,8 +273,16 @@ struct TelemetryData
     float magY;
     float magZ;
 
-    float latitude;
-    float longitude;
+    // double, nao float -- float so' tem ~7 digitos decimais de
+    // precisao no total, e' pouco pra um numero no formato
+    // "-23.xxxxxxxxx" (2 digitos antes do ponto ja' comem quase
+    // metade disso, sobrando so' uns 4-5 decimais REAIS -- os demais
+    // seriam ruido, nao precisao de verdade). GPS::getLatitude()/
+    // getLongitude() ja' retornam double (TinyGPSPlus), guardar aqui
+    // como float jogava fora essa precisao antes mesmo do CSV/LoRa
+    // formatarem o numero.
+    double latitude;
+    double longitude;
 
     float gpsAltitude;
     float baroAltitude;
@@ -214,6 +290,9 @@ struct TelemetryData
     float course;
     float temperature;
     float battery;
+
+    float airspeed;  // pitot (MPXV7002DP)
+    float gpsSpeed;  // GPS (TinyGPSPlus speed.mps())
 
     uint8_t satellites;
 

@@ -36,7 +36,21 @@
 
 <div class="card">
 <h3>Comandos</h3>
-<p class="warn">Ao iniciar o voo, as configurações ficam bloqueadas até o pouso.</p>
+<p class="warn">Ao iniciar o voo, as configurações ficam bloqueadas até o pouso -- a não ser que a opção abaixo esteja marcada.</p>
+
+<table>
+<tr>
+<td>Permitir alterar PID/trim durante o voo</td>
+<td><input id="liveTuningEnabled" type="checkbox"></td>
+</tr>
+</table>
+<p class="hint">
+Vale só para este voo (some ao pousar/reativar, precisa marcar de novo
+no próximo). Com o avião em modo FLIGHT, os campos ficam liberados na
+página PID -- as mudanças valem na hora, por cima da correção que o
+PID já está fazendo.
+</p>
+
 <button id="startFlight" class="primary">Iniciar Voo</button>
 <button id="endFlight" class="danger" style="display:none;">Finalizar Voo</button>
 <button id="resetFlight" class="secondary" style="display:none;">Reativar Voo</button>

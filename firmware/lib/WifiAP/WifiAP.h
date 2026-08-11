@@ -53,6 +53,12 @@ public:
 
     void setNavigation(const NavigationData& data);
 
+    // Resultado da config UBX aplicada no boot (GPS::begin()) --
+    // diferente de setNavigation()/setSystemStatus(), que sao
+    // atualizados o tempo todo, isso e' chamado uma vez so, logo apos
+    // gps.begin() (ver setupWifi() em main.cpp).
+    void setGpsConfigStatus(const GpsConfigStatus& status);
+
     void setSystemStatus(const SystemStatus& data);
 
     void setTelemetryJson(const char* json);
@@ -128,6 +134,8 @@ public:
 
         NavigationData navigation;
 
+        GpsConfigStatus gpsConfig;
+
         SystemStatus status;
 
         SystemConfig systemConfig;
@@ -171,6 +179,8 @@ public:
 
         void handleStatus();
 
+        void handleGpsConfig();
+
         void handleOffsets();
 
         void handlePid();
@@ -182,6 +192,8 @@ public:
         void handleCheckSd();
 
         void handleCheckLora();
+
+        void handleCheckGps();
 
         void handleStartFlight();
 
@@ -216,6 +228,8 @@ public:
         void sendJsonStatus();
 
         void sendJsonConfig();
+
+        void sendJsonGpsConfig();
 
         void sendJsonSuccess(
             const char* message

@@ -1,18 +1,8 @@
 #include "GPS.h"
 #include <Arduino.h>
 
-GPS::GPS(uint8_t TX_GPS, int8_t RX_GPS) : serialGPS(1), TX_GPS(TX_GPS), RX_GPS(RX_GPS){}
-bool GPS::begin(){
+GPS::GPS(HardwareSerial& serial) : serialGPS(serial){}
 
-    serialGPS.begin(
-        BAUDRATE,
-        SERIAL_8N1,
-        TX_GPS,
-        RX_GPS
-    );
-
-    return true;
-}
 bool GPS::update(){
 
     bool receivedNewData = false;
@@ -44,6 +34,11 @@ bool GPS::update(){
         course = gps.course.deg();
     }
 
+    if (gps.speed.isValid())
+    {
+        speed = gps.speed.mps();
+    }
+
     if (gps.satellites.isValid())
     {
         satellites = gps.satellites.value();
@@ -71,6 +66,7 @@ double GPS::getLatitude() const {return latitude;}
 double GPS::getLongitude() const {return longitude;}
 double GPS::getAltitude() const {return altitude;}
 double GPS::getCourse() const {return course;}
+double GPS::getSpeed() const {return speed;}
 uint8_t GPS::getSatellites() const {return satellites;}
 uint8_t GPS::getHour() const {return hour;}
 uint8_t GPS::getMinute() const {return minute;}

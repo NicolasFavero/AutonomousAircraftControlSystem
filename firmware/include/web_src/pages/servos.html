@@ -1,0 +1,67 @@
+<section>
+<h2>Servos</h2>
+
+<p class="hint">
+Trim simétrico dos flaperons: um único valor (graus, sempre positivo)
+que soma no neutro do aileron esquerdo e SUBTRAI do neutro do aileron
+direito ao mesmo tempo -- assim os dois sobem ou descem juntos (nunca
+em direções opostas), sem precisar mexer nos ângulos base de cada
+servo individualmente. Convenção assumida: positivo (sem "Inverter"
+marcado) = ambos os flaperons descem (mais sustentação). Confirme na
+prática com os servos de verdade -- se estiver ao contrário, marque
+"Inverter" (o campo em si continua positivo -- o celular não tem tecla
+de "-" no teclado numérico). O firmware sempre recusa qualquer ângulo
+fora do fim de curso mecânico real de cada servo, então digitar demais
+só prende no teto -- só que agora esse teto é diferente conforme a
+direção: até <strong>85°</strong> de trim sem "Inverter" marcado, até
+<strong>32°</strong> com "Inverter" marcado (o fim de curso dos
+ailerons não é mais simétrico dos 2 lados).
+</p>
+
+<div class="grid">
+
+<div class="card">
+<h3>Trim (Neutro)</h3>
+<table>
+<tr><td>Flaperons (°)</td><td><input id="flaperonTrim" type="number" step="0.5" min="0"></td></tr>
+<tr><td>Inverter flaperons</td><td><input id="invertFlaperon" type="checkbox"></td></tr>
+<tr><td>Profundor (°)</td><td><input id="elevatorTrim" type="number" step="0.5" min="0" max="70"></td></tr>
+<tr><td>Inverter profundor</td><td><input id="invertElevator" type="checkbox"></td></tr>
+</table>
+
+<div class="actions">
+<button class="primary" id="applyServoTrim">Aplicar e Travar Servos</button>
+</div>
+
+<p class="hint">
+Só funciona com o avião em modo CONFIG. Aplicar move os 3 servos na
+hora para a nova posição neutra (dá para conferir visualmente) -- e
+esse trim vira o novo padrão que o PID soma/subtrai por cima durante o
+voo. Os mesmos campos também aparecem na página PID.
+</p>
+</div>
+
+<div class="card">
+<h3>Flaperon -- Leitura Fácil</h3>
+<table>
+<tr><td>Deslocamento do neutro</td><td><span id="easyFlaperon">-</span> °</td></tr>
+</table>
+<p class="hint">
+Positivo = sobe, negativo = desce, 0 = neutro -- já desfaz a assimetria
+dos ângulos crus dos 2 ailerons (ver "Posição Atual dos Servos" abaixo
+se precisar do ângulo bruto de cada um, útil pra debug).
+</p>
+</div>
+
+<div class="card">
+<h3>Posição Atual dos Servos</h3>
+<table>
+<tr><td>Profundor</td><td><span id="servoElevator">-</span> °</td></tr>
+<tr><td>Aileron Esquerdo</td><td><span id="servoLeftAileron">-</span> °</td></tr>
+<tr><td>Aileron Direito</td><td><span id="servoRightAileron">-</span> °</td></tr>
+</table>
+</div>
+
+</div>
+
+</section>
